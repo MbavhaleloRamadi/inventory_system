@@ -1,0 +1,97 @@
+/* Dashboard specific styles */
+.dashboard-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+}
+
+.dashboard-card {
+  @apply bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200;
+}
+
+.dashboard-stat {
+  @apply px-4 py-5 sm:p-6;
+}
+
+.dashboard-stat-title {
+  @apply text-sm font-medium text-gray-500 truncate;
+}
+
+.dashboard-stat-value {
+  @apply mt-1 text-3xl font-semibold text-gray-900;
+}
+
+/* Inventory specific styles */
+.inventory-item-image {
+  @apply h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center;
+}
+
+.stock-indicator {
+  @apply w-3 h-3 rounded-full;
+}
+
+.stock-indicator.in-stock {
+  @apply bg-green-400;
+}
+
+.stock-indicator.low-stock {
+  @apply bg-yellow-400;
+}
+
+.stock-indicator.out-of-stock {
+  @apply bg-red-400;
+}
+
+/* Form specific styles */
+.form-section {
+  @apply space-y-6;
+}
+
+.form-group {
+  @apply space-y-1;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-label.required::after {
+  content: ' *';
+  @apply text-red-500;
+}
+
+.form-error {
+  @apply mt-1 text-sm text-red-600;
+}
+
+.form-help {
+  @apply mt-1 text-sm text-gray-500;
+}
+
+/* Search and filter styles */
+.search-container {
+  @apply relative;
+}
+
+.search-input {
+  @apply block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-500 focus:border-red-500 sm:text-sm;
+}
+
+.search-icon {
+  @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none;
+}
+
+/* Pagination styles */
+.pagination {
+  @apply relative z-0 inline-flex rounded-md shadow-sm -space-x-px;
+}
+
+.pagination-item {
+  @apply relative inline-flex items-center px-4 py-2 border text-sm font-medium;
+}
+
+.pagination-item.active {
+  @apply z-10 bg-red-50 border-red-500 text-red-600;
+}
+
+.pagination-item:not(.active) {
+  @apply bg-white border-gray-300 text-gray-500 hover:bg-gray-50;
+}
