@@ -10,13 +10,13 @@ import {
   Edit,
   Trash2,
   Package,
-  AlertTriangle,
   MoreVertical,
   RefreshCw,
   CheckSquare,
   Square,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  MapPin
 } from 'lucide-react';
 import { inventoryAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -43,11 +43,10 @@ const Inventory = () => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
 
-  // Categories and locations for filters (would come from API)
-  const [categories, setCategories] = useState([
+  const [categories] = useState([
     'Electronics', 'Tools', 'Materials', 'Safety', 'Office'
   ]);
-  const [locations, setLocations] = useState([
+  const [locations] = useState([
     'Warehouse A', 'Warehouse B', 'Office', 'Site 1', 'Site 2'
   ]);
 
@@ -133,7 +132,6 @@ const Inventory = () => {
     const value = e.target.value;
     setFilters(prev => ({ ...prev, search: value }));
     
-    // Update URL params
     if (value) {
       searchParams.set('search', value);
     } else {
@@ -141,14 +139,12 @@ const Inventory = () => {
     }
     setSearchParams(searchParams);
     
-    // Reset to first page
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     
-    // Update URL params
     if (value) {
       searchParams.set(key, value);
     } else {
@@ -156,7 +152,6 @@ const Inventory = () => {
     }
     setSearchParams(searchParams);
     
-    // Reset to first page
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -198,14 +193,12 @@ const Inventory = () => {
           break;
         case 'delete':
           if (window.confirm(`Are you sure you want to delete ${selectedItems.length} items?`)) {
-            // Implement bulk delete
             toast.success('Items deleted successfully');
             setSelectedItems([]);
             fetchItems();
           }
           break;
         case 'update_location':
-          // Open location update modal
           toast.info('Location update modal coming soon');
           break;
         default:
@@ -245,7 +238,6 @@ const Inventory = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="border-b border-gray-200 pb-4">
         <div className="flex items-center justify-between">
           <div>
@@ -256,25 +248,25 @@ const Inventory = () => {
             <button
               onClick={() => fetchItems()}
               disabled={loading}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="btn-secondary"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
             <button
               onClick={() => handleBulkAction('export')}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="btn-secondary"
             >
               <Download className="h-4 w-4 mr-2" />
               Export
             </button>
-            <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+             <button className="btn-secondary">
               <Upload className="h-4 w-4 mr-2" />
               Import
             </button>
             <Link
               to="/inventory/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="btn-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Item
@@ -283,10 +275,8 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* Search and Filters */}
       <div className="bg-white shadow rounded-lg p-4">
         <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-          {/* Search */}
           <div className="flex-1">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -297,22 +287,20 @@ const Inventory = () => {
                 placeholder="Search items..."
                 value={filters.search}
                 onChange={handleSearch}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                className="form-input pl-10"
               />
             </div>
           </div>
 
-          {/* Filter Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="btn-secondary"
           >
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </button>
         </div>
 
-        {/* Expandable Filters */}
         {showFilters && (
           <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
             <div>
@@ -320,7 +308,7 @@ const Inventory = () => {
               <select
                 value={filters.category}
                 onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                className="form-select"
               >
                 <option value="">All Categories</option>
                 {categories.map(category => (
@@ -334,7 +322,7 @@ const Inventory = () => {
               <select
                 value={filters.location}
                 onChange={(e) => handleFilterChange('location', e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                className="form-select"
               >
                 <option value="">All Locations</option>
                 {locations.map(location => (
@@ -348,7 +336,7 @@ const Inventory = () => {
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                className="form-select"
               >
                 <option value="">All Status</option>
                 <option value="in-stock">In Stock</option>
@@ -372,7 +360,6 @@ const Inventory = () => {
         )}
       </div>
 
-      {/* Bulk Actions */}
       {selectedItems.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
@@ -408,84 +395,33 @@ const Inventory = () => {
         </div>
       )}
 
-      {/* Items Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="table">
+            <thead className="table-header">
               <tr>
                 <th className="px-6 py-3 text-left">
-                  <button
-                    onClick={handleSelectAll}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    {selectedItems.length === items.length ? (
-                      <CheckSquare className="h-5 w-5" />
-                    ) : (
-                      <Square className="h-5 w-5" />
-                    )}
+                  <button onClick={handleSelectAll} className="text-gray-400 hover:text-gray-600">
+                    {selectedItems.length === items.length && items.length > 0 ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    onClick={() => handleSort('name')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
+                  <button onClick={() => handleSort('name')} className="flex items-center space-x-1 hover:text-gray-700">
                     <span>Item</span>
                     {getSortIcon('name')}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    onClick={() => handleSort('category')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
-                    <span>Category</span>
-                    {getSortIcon('category')}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    onClick={() => handleSort('location')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
-                    <span>Location</span>
-                    {getSortIcon('location')}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    onClick={() => handleSort('current_stock')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
-                    <span>Stock</span>
-                    {getSortIcon('current_stock')}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    onClick={() => handleSort('unit_price')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
-                    <span>Unit Price</span>
-                    {getSortIcon('unit_price')}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <button
-                    onClick={() => handleSort('total_value')}
-                    className="flex items-center space-x-1 hover:text-gray-700"
-                  >
-                    <span>Total Value</span>
-                    {getSortIcon('total_value')}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Value</th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {items.map((item) => {
+            <tbody className="divide-y divide-gray-200">
+                {items.map((item) => {
                 const stockStatus = getStockStatus(item);
                 return (
                   <tr key={item.id} className="hover:bg-gray-50">
@@ -555,96 +491,7 @@ const Inventory = () => {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                disabled={pagination.page === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
-                disabled={pagination.page === pagination.totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing{' '}
-                  <span className="font-medium">{(pagination.page - 1) * pagination.pageSize + 1}</span>
-                  {' '}to{' '}
-                  <span className="font-medium">
-                    {Math.min(pagination.page * pagination.pageSize, pagination.total)}
-                  </span>
-                  {' '}of{' '}
-                  <span className="font-medium">{pagination.total}</span>
-                  {' '}results
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                    disabled={pagination.page === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                    const pageNumber = i + 1;
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => setPagination(prev => ({ ...prev, page: pageNumber }))}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          pagination.page === pageNumber
-                            ? 'z-10 bg-red-50 border-red-500 text-red-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNumber}
-                      </button>
-                    );
-                  })}
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
-                    disabled={pagination.page === pagination.totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </nav>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Empty State */}
-      {!loading && items.length === 0 && (
-        <div className="text-center py-12">
-          <Package className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No inventory items</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by adding your first inventory item.</p>
-          <div className="mt-6">
-            <Link
-              to="/inventory/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

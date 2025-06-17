@@ -3,16 +3,12 @@ import { Link } from 'react-router-dom';
 import {
   Package,
   AlertTriangle,
-  TrendingUp,
   TrendingDown,
   Plus,
   FileText,
   ShoppingCart,
   MapPin,
-  Clock,
   DollarSign,
-  Users,
-  Activity,
   RefreshCw
 } from 'lucide-react';
 import { dashboardAPI } from '../../services/api';

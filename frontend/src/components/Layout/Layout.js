@@ -45,9 +45,33 @@ const Layout = ({ children }) => {
     }
   };
 
-  // Filter navigation based on user role
-  const filteredNavigation = navigation.filter(item => 
-    item.roles.includes(user?.role?.toLowerCase() || 'staff')
+  const userRole = user?.role ? user.role.toLowerCase() : 'staff';
+
+  const filteredNavigation = navigation.filter(item =>
+    item.roles.includes(userRole)
+  );
+
+  const sidebarContent = (
+    <nav className="flex-1 px-4 py-4 space-y-2">
+      {filteredNavigation.map((item) => {
+        const isActive = location.pathname.startsWith(item.href);
+        return (
+          <Link
+            key={item.name}
+            to={item.href}
+            onClick={() => setSidebarOpen(false)}
+            className={`group flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-red-50 text-red-600'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <item.icon className="h-5 w-5 mr-3" />
+            {item.name}
+          </Link>
+        );
+      })}
+    </nav>
   );
 
   return (
@@ -67,26 +91,7 @@ const Layout = ({ children }) => {
               <X className="h-6 w-6" />
             </button>
           </div>
-          <nav className="flex-1 px-4 py-4 space-y-2">
-            {filteredNavigation.map((item) => {
-              const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-red-50 text-red-600 border-r-2 border-red-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <item.icon className="h-5 w-5 mr-3" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+          {sidebarContent}
         </div>
       </div>
 
@@ -98,25 +103,7 @@ const Layout = ({ children }) => {
           </div>
           <span className="ml-2 text-xl font-bold text-gray-900">RedCore360</span>
         </div>
-        <nav className="flex-1 px-4 py-4 space-y-2">
-          {filteredNavigation.map((item) => {
-            const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-red-50 text-red-600 border-r-2 border-red-600'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <item.icon className="h-5 w-5 mr-3" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
+        {sidebarContent}
       </div>
 
       {/* Main content */}
@@ -126,13 +113,13 @@ const Layout = ({ children }) => {
           <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex items-center">
               <button
+                type="button"
                 onClick={() => setSidebarOpen(true)}
                 className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600"
               >
                 <Menu className="h-6 w-6" />
               </button>
               
-              {/* Search bar */}
               <div className="hidden md:block ml-4">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -148,13 +135,11 @@ const Layout = ({ children }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="p-2 rounded-full text-gray-400 hover:text-gray-600 relative">
+              <button type="button" className="p-2 rounded-full text-gray-400 hover:text-gray-600 relative">
                 <Bell className="h-6 w-6" />
                 <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
               </button>
 
-              {/* User menu */}
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
                   <div className="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
@@ -166,6 +151,7 @@ const Layout = ({ children }) => {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={handleLogout}
                   className="p-2 rounded-full text-gray-400 hover:text-red-600 transition-colors"
                   title="Logout"
@@ -177,7 +163,6 @@ const Layout = ({ children }) => {
           </div>
         </div>
 
-        {/* Page content */}
         <main className="flex-1">
           <div className="py-6">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

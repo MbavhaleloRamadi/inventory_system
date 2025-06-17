@@ -129,10 +129,6 @@
   @apply mt-5 px-2;
 }
 
-.sidebar-nav-item {
-  @apply group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white;
-}
-
 .sidebar-nav-item.active {
   @apply bg-gray-900 text-white;
 }

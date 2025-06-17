@@ -188,4 +188,29 @@ function App() {
   );
 }
 
+// Add this debugging code right after all your imports in App.js
+// and before the ProtectedRoute component
+
+console.log('=== DEBUGGING IMPORTS ===');
+console.log('Layout:', Layout);
+console.log('AuthLayout:', AuthLayout);
+console.log('Login:', Login);
+console.log('Register:', Register);
+console.log('Dashboard:', Dashboard);
+console.log('Inventory:', Inventory);
+console.log('InventoryDetail:', InventoryDetail);
+console.log('PurchaseOrders:', PurchaseOrders);
+console.log('PODetail:', PODetail);
+console.log('Requisitions:', Requisitions);
+console.log('RequisitionDetail:', RequisitionDetail);
+console.log('TemplateBuilder:', TemplateBuilder);
+console.log('Locations:', Locations);
+console.log('Reports:', Reports);
+console.log('Users:', Users);
+console.log('Settings:', Settings);
+console.log('useAuth:', useAuth);
+console.log('AuthProvider:', AuthProvider);
+console.log('AppProvider:', AppProvider);
+console.log('=== END DEBUGGING ===');
+
 export default App;
