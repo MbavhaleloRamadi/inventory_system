@@ -122,16 +122,21 @@
 
 /* Sidebar styles */
 .sidebar {
-  @apply fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 overflow-y-auto;
+  @apply fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 overflow-y-auto shadow-xl transition-transform duration-300 ease-in-out;
 }
 
 .sidebar-nav {
   @apply mt-5 px-2;
 }
 
-.sidebar-nav-item.active {
-  @apply bg-gray-900 text-white;
+.sidebar-nav-item {
+  @apply flex items-center gap-3 px-4 py-2 rounded-md text-gray-300 transition-colors duration-200 hover:bg-gray-700 hover:text-white;
 }
+
+.sidebar-nav-item.active {
+  @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold shadow-md;
+}
+
 
 /* Responsive utilities */
 @media (max-width: 640px) {
