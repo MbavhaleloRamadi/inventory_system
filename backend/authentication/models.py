@@ -1,24 +1,20 @@
-# models.py
+# models.py in your authentication app
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class CustomUser(AbstractUser):
-    """
-    Custom user model extending Django's AbstractUser
-    """
-    name = models.CharField(max_length=150, help_text="Full name of the user")
-    email = models.EmailField(unique=True, help_text="Email address (must be unique)")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    name = models.CharField(max_length=150, blank=True)
+    email = models.EmailField(unique=True)
     
     # Use email as the username field
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'name']
+    REQUIRED_FIELDS = ['username']
     
     def __str__(self):
         return self.email
     
-    class Meta:
-        db_table = 'auth_user'
-        verbose_name = 'User'
-        verbose_name_plural = 'Users'
+    def save(self, *args, **kwargs):
+        # Auto-generate username from email if not provided
+        if not self.username:
+            self.username = self.email.split('@')[0]
+        super().save(*args, **kwargs)

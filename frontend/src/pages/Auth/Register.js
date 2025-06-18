@@ -1,120 +1,205 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { Mail, Lock, User } from 'lucide-react';
+import React, { useState } from 'react';
 
-const Register = () => {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
-  const { register: registerUser } = useAuth();
-  const navigate = useNavigate();
-  const password = watch('password');
+const Registration = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
 
-  const onSubmit = async (data) => {
-    try {
-      await registerUser(data);
-      navigate('/dashboard');
-    } catch (error) {
-        // Error is handled in AuthContext
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrors({});
+    setDebugInfo(null);
+
+    try {
+      console.log('Sending registration data:', formData);
+      
+      const response = await fetch('http://localhost:8000/api/auth/register/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      
+      // Debug information
+      setDebugInfo({
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        data: data
+      });
+
+      if (response.ok) {
+        alert('Registration successful!');
+        console.log('Registration successful:', data);
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        });
+      } else {
+        console.error('Registration failed:', data);
+        if (data.errors) {
+          setErrors(data.errors);
+        } else if (typeof data === 'object') {
+          // Handle Django REST framework error format
+          setErrors(data);
+        } else {
+          setErrors({ general: data.message || 'Registration failed' });
+        }
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      setErrors({ general: 'Network error. Please check your connection.' });
+      setDebugInfo({
+        error: error.message,
+        type: 'Network Error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderFieldError = (fieldName) => {
+    if (errors[fieldName]) {
+      return (
+        <div className="text-red-600 text-sm mt-1">
+          {Array.isArray(errors[fieldName]) 
+            ? errors[fieldName].join(', ') 
+            : errors[fieldName]
+          }
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <>
-      <div>
-        <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-          Create a new account
-        </h2>
-      </div>
-      <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="rounded-md shadow-sm -space-y-px">
-          <div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="name"
-                type="text"
-                autoComplete="name"
-                {...register('name', { required: 'Full name is required' })}
-                className="form-input pl-10 rounded-t-md"
-                placeholder="Full Name"
-              />
-            </div>
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
-          </div>
-          <div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="email-address"
-                type="email"
-                autoComplete="email"
-                {...register('email', { required: 'Email is required' })}
-                className="form-input pl-10"
-                placeholder="Email address"
-              />
-            </div>
-            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
-          </div>
-          <div>
-            <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                    id="password"
-                    type="password"
-                    {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'Password must be at least 8 characters' } })}
-                    className="form-input pl-10"
-                    placeholder="Password"
-                />
-            </div>
-            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
-          </div>
-          <div>
-            <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                    id="confirm-password"
-                    type="password"
-                    {...register('confirmPassword', { 
-                        required: 'Please confirm your password',
-                        validate: value => value === password || 'Passwords do not match'
-                    })}
-                    className="form-input pl-10 rounded-b-md"
-                    placeholder="Confirm Password"
-                />
-            </div>
-            {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>}
-          </div>
+    <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+      
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            Full Name *
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.name ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+            placeholder="Enter your full name"
+          />
+          {renderFieldError('name')}
         </div>
 
         <div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Registering...' : 'Register'}
-          </button>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            Email *
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.email ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+            placeholder="Enter your email address"
+          />
+          {renderFieldError('email')}
         </div>
-      </form>
-       <div className="mt-6">
-        <p className="text-center text-sm text-gray-600">
-          Already a member?{' '}
-          <Link to="/login" className="font-medium text-red-600 hover:text-red-500">
-            Sign in
-          </Link>
-        </p>
+
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            Password *
+          </label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.password ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+            minLength={8}
+            placeholder="Enter a strong password"
+          />
+          {renderFieldError('password')}
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+            Confirm Password *
+          </label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.confirmPassword || errors.non_field_errors ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+            placeholder="Confirm your password"
+          />
+          {renderFieldError('confirmPassword')}
+          {renderFieldError('non_field_errors')}
+        </div>
+
+        {errors.general && (
+          <div className="text-red-600 text-sm p-3 bg-red-50 rounded">
+            {errors.general}
+          </div>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Registering...' : 'Register'}
+        </button>
       </div>
-    </>
+    </div>
   );
 };
 
-export default Register;
+export default Registration;
