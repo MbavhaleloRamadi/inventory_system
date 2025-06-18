@@ -197,6 +197,16 @@ const Registration = () => {
         >
           {loading ? 'Registering...' : 'Register'}
         </button>
+
+        {/* Debug Information Panel (only shown in development) */}
+        {process.env.NODE_ENV === 'development' && debugInfo && (
+          <div className="mt-4 p-3 bg-gray-100 rounded-md text-xs">
+            <h4 className="font-semibold mb-2">Debug Info:</h4>
+            <pre className="whitespace-pre-wrap">
+              {JSON.stringify(debugInfo, null, 2)}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   );

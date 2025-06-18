@@ -1,8 +1,12 @@
-// src/api/axios.js
 import axios from 'axios';
 
+const token = localStorage.getItem('token'); // or from context
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/', // or your endpoint
+  baseURL: 'http://localhost:8000/api',
+  headers: {
+    Authorization: token ? `Bearer ${token}` : '',
+  },
 });
 
 export default api;
