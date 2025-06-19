@@ -65,13 +65,23 @@ const login = async (credentials) => {
     }
   };
 
-  const logout = () => {
-    authAPI.logout();
+  const logout = async () => {
+  try {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      await authAPI.logout({ refresh: refreshToken }); // call logout endpoint
+    }
+
     setUser(null);
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     toast.success('Logged out successfully');
-  };
+  } catch (error) {
+    console.error('Logout failed:', error);
+    toast.error('TATA');
+  }
+};
+
 
   const value = {
     user,

@@ -10,8 +10,10 @@ import AuthLayout from './components/Layout/AuthLayout';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 
+// Dashboard Components - Updated to use role-based routing
+import DashboardRouter from './pages/Dashboard/DashboardRouter';
+
 // Main Application Pages
-import Dashboard from './pages/Dashboard/Dashboard';
 import Inventory from './pages/Inventory/Inventory';
 import InventoryDetail from './pages/Inventory/InventoryDetail';
 import PurchaseOrders from './pages/PurchaseOrders/PurchaseOrders';
@@ -72,7 +74,7 @@ function App() {
               <Route path="/" element={
                 <ProtectedRoute>
                   <Layout>
-                    <Dashboard />
+                    <DashboardRouter />
                   </Layout>
                 </ProtectedRoute>
               } />
@@ -80,7 +82,7 @@ function App() {
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Layout>
-                    <Dashboard />
+                    <DashboardRouter />
                   </Layout>
                 </ProtectedRoute>
               } />
@@ -187,30 +189,5 @@ function App() {
     </AuthProvider>
   );
 }
-
-// Add this debugging code right after all your imports in App.js
-// and before the ProtectedRoute component
-
-console.log('=== DEBUGGING IMPORTS ===');
-console.log('Layout:', Layout);
-console.log('AuthLayout:', AuthLayout);
-console.log('Login:', Login);
-console.log('Register:', Register);
-console.log('Dashboard:', Dashboard);
-console.log('Inventory:', Inventory);
-console.log('InventoryDetail:', InventoryDetail);
-console.log('PurchaseOrders:', PurchaseOrders);
-console.log('PODetail:', PODetail);
-console.log('Requisitions:', Requisitions);
-console.log('RequisitionDetail:', RequisitionDetail);
-console.log('TemplateBuilder:', TemplateBuilder);
-console.log('Locations:', Locations);
-console.log('Reports:', Reports);
-console.log('Users:', Users);
-console.log('Settings:', Settings);
-console.log('useAuth:', useAuth);
-console.log('AuthProvider:', AuthProvider);
-console.log('AppProvider:', AppProvider);
-console.log('=== END DEBUGGING ===');
 
 export default App;

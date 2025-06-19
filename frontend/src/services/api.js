@@ -145,20 +145,20 @@ export const dashboardAPI = {
 export const loginUser = async (credentials) => {
   try {
     const response = await authAPI.login(credentials);
-    
+
     // Your backend returns { access, refresh, user }
     const { access, refresh, user } = response.data;
-    
+
     if (access && refresh) {
       localStorage.setItem('accessToken', access);
       localStorage.setItem('refreshToken', refresh);
       api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
     }
-    
+
     return { success: true, data: { user, tokens: { access, refresh } } };
   } catch (error) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error.response?.data?.detail || error.response?.data || 'Login failed'
     };
   }
@@ -169,8 +169,8 @@ export const registerUser = async (userData) => {
     const response = await authAPI.register(userData);
     return { success: true, data: response.data };
   } catch (error) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error.response?.data || 'Registration failed'
     };
   }
@@ -180,7 +180,8 @@ export const logoutUser = async () => {
   try {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
-      await authAPI.logout(refreshToken);
+      await authAPI.logout({ refresh: refreshToken });
+
     }
   } catch (error) {
     console.error('Logout API call failed:', error);
@@ -217,7 +218,7 @@ export const inventoryAPI = {
   getItems: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const url = queryString ? `/api/inventory/?${queryString}` : '/api/inventory/';
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -378,7 +379,7 @@ export const inventoryAPI = {
   exportItems: async (format = 'csv', filters = {}) => {
     const params = { ...filters, format };
     const queryString = new URLSearchParams(params).toString();
-    
+
     const response = await fetch(`/api/inventory/export/?${queryString}`, {
       method: 'GET',
       headers: {
