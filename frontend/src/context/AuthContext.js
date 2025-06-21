@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     console.error("Failed to fetch user", error);
     setUser(null);
     localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('RefreshToken');
   } finally {
     setLoading(false);
   }
@@ -36,7 +36,7 @@ const login = async (credentials) => {
     const { access, refresh, user } = response.data;
 
     localStorage.setItem('access_token', access);
-    localStorage.setItem('refresh_token', refresh);
+    localStorage.setItem('RefreshToken', refresh);
     setUser(user);
     toast.success('Logged in successfully!');
     return user;
@@ -67,14 +67,14 @@ const login = async (credentials) => {
 
   const logout = async () => {
   try {
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (refreshToken) {
-      await authAPI.logout({ refresh: refreshToken }); // call logout endpoint
+    const RefreshTokenn = localStorage.getItem('RefreshToken');
+    if (RefreshTokenn) {
+      await authAPI.logout({ refresh: RefreshTokenn }); // call logout endpoint
     }
 
     setUser(null);
     localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('RefreshToken');
     toast.success('Logged out successfully');
   } catch (error) {
     console.error('Logout failed:', error);

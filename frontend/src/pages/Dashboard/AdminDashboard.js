@@ -45,64 +45,54 @@ const AdminDashboard = ({ user }) => {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      // Actually use both responses
+      
       const [dashboardResponse, usersResponse, permissionsResponse] = await Promise.all([
         dashboardAPI.getDashboardData(),
         authAPI.getUsersList({ limit: 10 }),
         authAPI.getPermissions()
       ]);
 
-      // Use the responses instead of ignoring them
       const dashboardData = dashboardResponse.data || {};
+      const usersData = usersResponse.data || {};
       const permissions = permissionsResponse.data || {};
-
-      // Mock data for demonstration - replace with actual API calls
 
       setData({
         metrics: {
-          totalUsers: usersResponse.data?.count || 0,
-          totalOrganizations: dashboardData.totalOrganizations || 5,
-          enabledModules: dashboardData.enabledModules || 12,
-          inventoryActivity: dashboardData.inventoryActivity || 1247,
-          lowStockAlerts: dashboardData.lowStockAlerts || 23,
-          pendingRequests: dashboardData.pendingRequests || 8,
-          systemHealth: dashboardData.systemHealth || 98,
-          permissions: permissions // Store permissions for use
+          totalUsers: usersData.count || dashboardData.totalUsers || 0,
+          totalOrganizations: dashboardData.totalOrganizations || 0,
+          enabledModules: dashboardData.enabledModules || 0,
+          inventoryActivity: dashboardData.inventoryActivity || 0,
+          lowStockAlerts: dashboardData.lowStockAlerts || 0,
+          pendingRequests: dashboardData.pendingRequests || 0,
+          systemHealth: dashboardData.systemHealth || 0,
+          permissions: permissions
         },
-        recentActivity: [
-          { id: 1, type: 'user', description: 'New user John Smith registered', timestamp: new Date(Date.now() - 1000 * 60 * 15) },
-          { id: 2, type: 'system', description: 'Inventory sync completed for Branch A', timestamp: new Date(Date.now() - 1000 * 60 * 45) },
-          { id: 3, type: 'security', description: 'Failed login attempts detected', timestamp: new Date(Date.now() - 1000 * 60 * 60) },
-          { id: 4, type: 'module', description: 'Barcode scanning module activated', timestamp: new Date(Date.now() - 1000 * 60 * 90) },
-        ],
-        systemAlerts: [
-          { id: 1, type: 'warning', message: 'Database backup is overdue', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2) },
-          { id: 2, type: 'info', message: '3 users pending approval', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4) },
-        ],
-        userStats: usersResponse.data?.results || [],
-        moduleUsage: [
-          { name: 'Inventory Management', usage: 95, users: 42 },
-          { name: 'Purchase Orders', usage: 78, users: 28 },
-          { name: 'Requisitions', usage: 65, users: 35 },
-          { name: 'Barcode Scanning', usage: 52, users: 18 },
-        ],
-        branchStats: [
-          { id: 1, name: 'Main Warehouse', users: 15, items: 1247, health: 98 },
-          { id: 2, name: 'Branch A', users: 8, items: 623, health: 95 },
-          { id: 3, name: 'Branch B', users: 12, items: 891, health: 92 },
-          { id: 4, name: 'Remote Office', users: 5, items: 234, health: 87 },
-        ]
+        recentActivity: dashboardData.recentActivity || [],
+        systemAlerts: dashboardData.systemAlerts || [],
+        userStats: usersData.results || dashboardData.userStats || [],
+        moduleUsage: dashboardData.moduleUsage || [],
+        branchStats: dashboardData.branchStats || []
       });
 
       toast.success('Admin dashboard refreshed');
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to refresh admin data');
+      
+      // Set empty data on error to avoid undefined errors
+      setData(prevData => ({
+        ...prevData,
+        recentActivity: [],
+        systemAlerts: [],
+        moduleUsage: [],
+        branchStats: []
+      }));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -310,17 +300,24 @@ const AdminDashboard = ({ user }) => {
               </Link>
             </div>
             <div className="space-y-4">
-              {data.recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
-                    {getActivityIcon(activity.type)}
+              {data.recentActivity.length > 0 ? (
+                data.recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{activity.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">{formatTime(activity.timestamp)}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">{formatTime(activity.timestamp)}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No recent activity</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -333,23 +330,30 @@ const AdminDashboard = ({ user }) => {
               </Link>
             </div>
             <div className="space-y-4">
-              {data.moduleUsage.map((module, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900">{module.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">{module.users} users</span>
-                      <span className="text-sm font-medium text-gray-900">{module.usage}%</span>
+              {data.moduleUsage.length > 0 ? (
+                data.moduleUsage.map((module, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900">{module.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">{module.users} users</span>
+                        <span className="text-sm font-medium text-gray-900">{module.usage}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${module.usage}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${module.usage}%` }}
-                    />
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Zap className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No module usage data</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -363,34 +367,41 @@ const AdminDashboard = ({ user }) => {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {data.branchStats.map((branch) => (
-              <div key={branch.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <Building className="h-4 w-4 text-gray-600" />
+            {data.branchStats.length > 0 ? (
+              data.branchStats.map((branch) => (
+                <div key={branch.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <Building className="h-4 w-4 text-gray-600" />
+                    </div>
+                    <h3 className="font-medium text-gray-900">{branch.name}</h3>
                   </div>
-                  <h3 className="font-medium text-gray-900">{branch.name}</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Users:</span>
+                      <span className="font-medium">{branch.users}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Items:</span>
+                      <span className="font-medium">{branch.items?.toLocaleString() || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Health:</span>
+                      <span className={`font-medium ${branch.health >= 95 ? 'text-green-600' :
+                        branch.health >= 90 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                        {branch.health}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Users:</span>
-                    <span className="font-medium">{branch.users}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Items:</span>
-                    <span className="font-medium">{branch.items.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Health:</span>
-                    <span className={`font-medium ${branch.health >= 95 ? 'text-green-600' :
-                      branch.health >= 90 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                      {branch.health}%
-                    </span>
-                  </div>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8">
+                <Building className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">No branch data available</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

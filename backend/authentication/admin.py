@@ -69,4 +69,4 @@ class CustomUserAdmin(UserAdmin):
             return False
         if obj and obj.role == 'developer' and request.user.role != 'developer':
             return False
-        return super
+        return super().has_delete_permission(request, obj)

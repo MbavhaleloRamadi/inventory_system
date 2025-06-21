@@ -223,9 +223,9 @@ def logout_view(request):
     Logout user by blacklisting the refresh token
     """
     try:
-        refresh_token = request.data.get("refresh_token")
-        if refresh_token:
-            token = RefreshToken(refresh_token)
+        RefreshTokennen = request.data.get("RefreshTokennen")
+        if RefreshTokennen:
+            token = RefreshToken(RefreshTokennen)
             token.blacklist()
         return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
     except Exception as e:

@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../hooks/useAuth'; // ✅ correct path
+
 
 const Registration = () => {
+  const { register, loading: authLoading } = useAuth();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -9,7 +13,6 @@ const Registration = () => {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,61 +30,117 @@ const Registration = () => {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Full name is required';
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    return newErrors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Client-side validation
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
     setLoading(true);
     setErrors({});
-    setDebugInfo(null);
 
     try {
-      console.log('Sending registration data:', formData);
-      
-      const response = await fetch('http://localhost:8000/api/auth/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
+      // Use the register function from AuthContext
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        // Note: confirmPassword is typically not sent to the server
+        // as validation happens on the client side
       });
 
-      const data = await response.json();
-      
-      // Debug information
-      setDebugInfo({
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        data: data
+      // Reset form on successful registration
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
       });
 
-      if (response.ok) {
-        alert('Registration successful!');
-        console.log('Registration successful:', data);
-        // Reset form
-        setFormData({
-          name: '',
-          email: '',
-          password: '',
-          confirmPassword: ''
-        });
-      } else {
-        console.error('Registration failed:', data);
-        if (data.errors) {
-          setErrors(data.errors);
-        } else if (typeof data === 'object') {
-          // Handle Django REST framework error format
-          setErrors(data);
-        } else {
-          setErrors({ general: data.message || 'Registration failed' });
-        }
-      }
+      // Success message and redirect logic can be handled in AuthContext
+      // or you can add navigation logic here if needed
+      
     } catch (error) {
-      console.error('Network error:', error);
-      setErrors({ general: 'Network error. Please check your connection.' });
-      setDebugInfo({
-        error: error.message,
-        type: 'Network Error'
-      });
+      console.error('Registration failed:', error);
+      
+      // Handle server-side validation errors
+      if (error.response?.data) {
+        const serverErrors = error.response.data;
+        
+        // Map server errors to form fields
+        const mappedErrors = {};
+        
+        // Handle different error formats
+        if (serverErrors.email) {
+          mappedErrors.email = Array.isArray(serverErrors.email) 
+            ? serverErrors.email.join(', ') 
+            : serverErrors.email;
+        }
+        
+        if (serverErrors.password) {
+          mappedErrors.password = Array.isArray(serverErrors.password) 
+            ? serverErrors.password.join(', ') 
+            : serverErrors.password;
+        }
+        
+        if (serverErrors.name) {
+          mappedErrors.name = Array.isArray(serverErrors.name) 
+            ? serverErrors.name.join(', ') 
+            : serverErrors.name;
+        }
+        
+        // Handle non-field errors
+        if (serverErrors.non_field_errors) {
+          mappedErrors.general = Array.isArray(serverErrors.non_field_errors) 
+            ? serverErrors.non_field_errors.join(', ') 
+            : serverErrors.non_field_errors;
+        }
+        
+        // Handle detail error message
+        if (serverErrors.detail && !Object.keys(mappedErrors).length) {
+          mappedErrors.general = serverErrors.detail;
+        }
+        
+        setErrors(mappedErrors);
+      } else {
+        setErrors({ general: 'Registration failed. Please try again.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -91,21 +150,20 @@ const Registration = () => {
     if (errors[fieldName]) {
       return (
         <div className="text-red-600 text-sm mt-1">
-          {Array.isArray(errors[fieldName]) 
-            ? errors[fieldName].join(', ') 
-            : errors[fieldName]
-          }
+          {errors[fieldName]}
         </div>
       );
     }
     return null;
   };
 
+  const isLoading = loading || authLoading;
+
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
       
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
             Full Name *
@@ -121,6 +179,7 @@ const Registration = () => {
             }`}
             required
             placeholder="Enter your full name"
+            disabled={isLoading}
           />
           {renderFieldError('name')}
         </div>
@@ -140,6 +199,7 @@ const Registration = () => {
             }`}
             required
             placeholder="Enter your email address"
+            disabled={isLoading}
           />
           {renderFieldError('email')}
         </div>
@@ -160,6 +220,7 @@ const Registration = () => {
             required
             minLength={8}
             placeholder="Enter a strong password"
+            disabled={isLoading}
           />
           {renderFieldError('password')}
         </div>
@@ -175,13 +236,13 @@ const Registration = () => {
             value={formData.confirmPassword}
             onChange={handleChange}
             className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.confirmPassword || errors.non_field_errors ? 'border-red-500' : 'border-gray-300'
+              errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
             }`}
             required
             placeholder="Confirm your password"
+            disabled={isLoading}
           />
           {renderFieldError('confirmPassword')}
-          {renderFieldError('non_field_errors')}
         </div>
 
         {errors.general && (
@@ -191,23 +252,13 @@ const Registration = () => {
         )}
 
         <button
-          onClick={handleSubmit}
-          disabled={loading}
+          type="submit"
+          disabled={isLoading}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Registering...' : 'Register'}
+          {isLoading ? 'Registering...' : 'Register'}
         </button>
-
-        {/* Debug Information Panel (only shown in development) */}
-        {process.env.NODE_ENV === 'development' && debugInfo && (
-          <div className="mt-4 p-3 bg-gray-100 rounded-md text-xs">
-            <h4 className="font-semibold mb-2">Debug Info:</h4>
-            <pre className="whitespace-pre-wrap">
-              {JSON.stringify(debugInfo, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
+      </form>
     </div>
   );
 };

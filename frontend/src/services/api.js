@@ -13,7 +13,7 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,23 +34,24 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
+        const RefreshTokenn = localStorage.getItem('RefreshTokenn');
+        if (RefreshTokenn) {
           const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: refreshToken,
+            refresh: RefreshTokenn,
           });
 
-          const newAccessToken = response.data.access;
-          localStorage.setItem('accessToken', newAccessToken);
-          api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          const newaccess_token = response.data.access;
+          localStorage.setItem('access_token', newaccess_token);
+          api.defaults.headers.common['Authorization'] = `Bearer ${newaccess_token}`;
+          originalRequest.headers.Authorization = `Bearer ${newaccess_token}`;
 
+          
           return api(originalRequest);
         }
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('RefreshTokenn');
         delete api.defaults.headers.common['Authorization'];
         window.location.href = '/login';
         return Promise.reject(refreshError);
@@ -115,13 +116,13 @@ export const authAPI = {
     return api.get('/auth/roles/');
   },
 
-  logout: (refreshToken) => {
-    return api.post('/auth/logout/', { refresh_token: refreshToken });
+  logout: (RefreshTokenn) => {
+    return api.post('/auth/logout/', { RefreshToken: RefreshTokenn });
   },
 
-  refreshToken: (refreshToken) => {
+  RefreshTokenn: (RefreshTokenn) => {
     return axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-      refresh: refreshToken,
+      refresh: RefreshTokenn,
     });
   },
 };
@@ -150,8 +151,8 @@ export const loginUser = async (credentials) => {
     const { access, refresh, user } = response.data;
 
     if (access && refresh) {
-      localStorage.setItem('accessToken', access);
-      localStorage.setItem('refreshToken', refresh);
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('RefreshTokenn', refresh);
       api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
     }
 
@@ -178,32 +179,32 @@ export const registerUser = async (userData) => {
 
 export const logoutUser = async () => {
   try {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (refreshToken) {
-      await authAPI.logout({ refresh: refreshToken });
+    const RefreshTokenn = localStorage.getItem('RefreshTokenn');
+    if (RefreshTokenn) {
+      await authAPI.logout({ refresh: RefreshTokenn });
 
     }
   } catch (error) {
     console.error('Logout API call failed:', error);
   } finally {
     // Clear everything regardless of API call success
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('RefreshTokenn');
     delete api.defaults.headers.common['Authorization'];
   }
 };
 
 export const isAuthenticated = () => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem('access_token');
   return !!token;
 };
 
 export const getStoredToken = () => {
-  return localStorage.getItem('accessToken');
+  return localStorage.getItem('access_token');
 };
 
-export const getStoredRefreshToken = () => {
-  return localStorage.getItem('refreshToken');
+export const getStoredRefreshTokenn = () => {
+  return localStorage.getItem('RefreshTokenn');
 };
 
 // Set token in headers if it exists
@@ -212,257 +213,87 @@ if (token) {
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
-// Inventory API endpoints
+/// Inventory API endpoints - Updated to use axios instance
 export const inventoryAPI = {
   // Get all inventory items with optional filters
-  getItems: async (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    const url = queryString ? `/api/inventory/?${queryString}` : '/api/inventory/';
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  getItems: (params = {}) => {
+    return api.get('/inventory/', { params });
   },
 
   // Get single inventory item
-  getItem: async (id) => {
-    const response = await fetch(`/api/inventory/${id}/`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  getItem: (id) => {
+    return api.get(`/inventory/${id}/`);
   },
 
   // Create new inventory item
-  createItem: async (itemData) => {
-    const response = await fetch('/api/inventory/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(itemData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  createItem: (itemData) => {
+    return api.post('/inventory/', itemData);
   },
 
   // Update inventory item
-  updateItem: async (id, itemData) => {
-    const response = await fetch(`/api/inventory/${id}/`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(itemData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  updateItem: (id, itemData) => {
+    return api.put(`/inventory/${id}/`, itemData);
   },
 
   // Partially update inventory item
-  patchItem: async (id, itemData) => {
-    const response = await fetch(`/api/inventory/${id}/`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(itemData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  patchItem: (id, itemData) => {
+    return api.patch(`/inventory/${id}/`, itemData);
   },
 
   // Delete inventory item
-  deleteItem: async (id) => {
-    const response = await fetch(`/api/inventory/${id}/`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.status === 204 ? { success: true } : await response.json();
+  deleteItem: (id) => {
+    return api.delete(`/inventory/${id}/`);
   },
 
   // Bulk delete inventory items
-  bulkDelete: async (itemIds) => {
-    const response = await fetch('/api/inventory/bulk-delete/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ids: itemIds }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  bulkDelete: (itemIds) => {
+    return api.post('/inventory/bulk-delete/', { ids: itemIds });
   },
 
   // Update stock levels
-  updateStock: async (id, stockData) => {
-    const response = await fetch(`/api/inventory/${id}/update-stock/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(stockData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  updateStock: (id, stockData) => {
+    return api.post(`/inventory/${id}/update-stock/`, stockData);
   },
 
   // Get stock movement history
-  getStockHistory: async (id) => {
-    const response = await fetch(`/api/inventory/${id}/movements/`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  getStockHistory: (id) => {
+    return api.get(`/inventory/${id}/movements/`);
   },
 
   // Export inventory data
-  exportItems: async (format = 'csv', filters = {}) => {
+  exportItems: (format = 'csv', filters = {}) => {
     const params = { ...filters, format };
-    const queryString = new URLSearchParams(params).toString();
-
-    const response = await fetch(`/api/inventory/export/?${queryString}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-      },
+    return api.get('/inventory/export/', { 
+      params,
+      responseType: 'blob' // Important for file downloads
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.blob();
   },
 
   // Import inventory data
-  importItems: async (file) => {
+  importItems: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-
-    const response = await fetch('/api/inventory/import/', {
-      method: 'POST',
+    
+    return api.post('/inventory/import/', formData, {
       headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
+        'Content-Type': 'multipart/form-data',
       },
-      body: formData,
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
   },
 
   // Get low stock items
-  getLowStockItems: async () => {
-    const response = await fetch('/api/inventory/low-stock/', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  getLowStockItems: () => {
+    return api.get('/inventory/low-stock/');
   },
 
   // Get inventory categories
-  getCategories: async () => {
-    const response = await fetch('/api/inventory/categories/', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  getCategories: () => {
+    return api.get('/inventory/categories/');
   },
 
   // Get inventory locations
-  getLocations: async () => {
-    const response = await fetch('/api/inventory/locations/', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${getStoredToken()}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+  getLocations: () => {
+    return api.get('/inventory/locations/');
   },
 };
 

@@ -52,97 +52,30 @@ const LogisticsDashboard = ({ user }) => {
     try {
       setLoading(true);
       
-      // Mock data for demonstration - replace with actual API calls
+      const dashboardResponse = await dashboardAPI.getDashboardData();
+      const dashboardData = dashboardResponse.data || {};
+
       setData({
-        todayAssignments: [
-          {
-            id: 1,
-            poNumber: 'PO-2024-001',
-            supplier: {
-              name: 'ABC Electronics',
-              contact: '+27 11 123 4567',
-              address: '123 Main St, Johannesburg'
-            },
-            items: [
-              { name: 'Laptop Dell XPS 13', expectedQty: 5, actualQty: null },
-              { name: 'Wireless Mouse', expectedQty: 10, actualQty: null }
-            ],
-            scheduledTime: '09:00',
-            estimatedTime: '09:30',
-            status: 'pending',
-            notes: 'Ring bell twice, entrance at the back',
-            priority: 'high'
-          },
-          {
-            id: 2,
-            poNumber: 'PO-2024-002',
-            supplier: {
-              name: 'Office Supplies Co',
-              contact: '+27 11 987 6543',
-              address: '456 Oak Ave, Sandton'
-            },
-            items: [
-              { name: 'A4 Paper', expectedQty: 20, actualQty: null },
-              { name: 'Ink Cartridges', expectedQty: 15, actualQty: null }
-            ],
-            scheduledTime: '11:00',
-            estimatedTime: '11:15',
-            status: 'in_transit',
-            notes: 'Check expiry dates on ink cartridges',
-            priority: 'medium'
-          },
-          {
-            id: 3,
-            poNumber: 'PO-2024-003',
-            supplier: {
-              name: 'Furniture Plus',
-              contact: '+27 11 555 7890',
-              address: '789 Industrial Rd, Germiston'
-            },
-            items: [
-              { name: 'Office Chairs', expectedQty: 8, actualQty: 8 },
-              { name: 'Desk Lamps', expectedQty: 8, actualQty: 7 }
-            ],
-            scheduledTime: '14:00',
-            estimatedTime: '14:45',
-            status: 'completed',
-            notes: 'One lamp was damaged - documented',
-            priority: 'low',
-            completedAt: new Date(Date.now() - 1000 * 60 * 30)
-          }
-        ],
-        currentTrip: {
-          id: 2,
-          status: 'in_transit',
-          startedAt: new Date(Date.now() - 1000 * 60 * 45),
-          supplier: 'Office Supplies Co',
-          estimatedArrival: '11:15'
-        },
-        completedToday: 3,
-        totalDistance: 87.5,
-        onlineStatus: true,
-        recentHistory: [
-          {
-            id: 1,
-            date: new Date(Date.now() - 1000 * 60 * 60 * 24),
-            tasks: 4,
-            distance: 95.2,
-            status: 'completed'
-          },
-          {
-            id: 2,
-            date: new Date(Date.now() - 1000 * 60 * 60 * 48),
-            tasks: 3,
-            distance: 67.8,
-            status: 'completed'
-          }
-        ]
+        todayAssignments: dashboardData.todayAssignments || [],
+        currentTrip: dashboardData.currentTrip || null,
+        completedToday: dashboardData.completedToday || 0,
+        totalDistance: dashboardData.totalDistance || 0,
+        onlineStatus: dashboardData.onlineStatus !== undefined ? dashboardData.onlineStatus : true,
+        recentHistory: dashboardData.recentHistory || []
       });
 
       toast.success('Dashboard refreshed');
     } catch (error) {
       console.error('Error fetching logistics data:', error);
       toast.error('Failed to refresh data');
+      
+      // Set empty data on error to avoid undefined errors
+      setData(prevData => ({
+        ...prevData,
+        todayAssignments: [],
+        currentTrip: null,
+        recentHistory: []
+      }));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -161,11 +94,30 @@ const LogisticsDashboard = ({ user }) => {
   const handleStartTrip = (taskId) => {
     toast.success('Trip started - GPS tracking enabled');
     // Update task status and start GPS tracking
+    setData(prevData => ({
+      ...prevData,
+      todayAssignments: prevData.todayAssignments.map(task =>
+        task.id === taskId
+          ? { ...task, status: 'in_transit', startedAt: new Date() }
+          : task
+      ),
+      currentTrip: prevData.todayAssignments.find(task => task.id === taskId) || null
+    }));
   };
 
   const handleCompletePickup = (taskId) => {
     toast.success('Pickup completed successfully');
     // Update task status and sync to server
+    setData(prevData => ({
+      ...prevData,
+      todayAssignments: prevData.todayAssignments.map(task =>
+        task.id === taskId
+          ? { ...task, status: 'completed', completedAt: new Date() }
+          : task
+      ),
+      currentTrip: prevData.currentTrip?.id === taskId ? null : prevData.currentTrip,
+      completedToday: prevData.completedToday + 1
+    }));
   };
 
   const handleTaskAction = (taskId, action) => {
@@ -239,7 +191,7 @@ const LogisticsDashboard = ({ user }) => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Logistics Dashboard</h1>
-                <p className="text-sm text-gray-600">Welcome back, {user.firstName}!</p>
+                <p className="text-sm text-gray-600">Welcome back, {user?.firstName || 'User'}!</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -325,90 +277,106 @@ const LogisticsDashboard = ({ user }) => {
           {activeTab === 'today' && (
             <div className="p-4">
               <div className="space-y-4">
-                {data.todayAssignments.map((task) => (
-                  <div
-                    key={task.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-gray-900">{task.supplier.name}</h3>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                            {task.priority}
-                          </span>
+                {data.todayAssignments.length > 0 ? (
+                  data.todayAssignments.map((task) => (
+                    <div
+                      key={task.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900">{task.supplier?.name || 'Unknown Supplier'}</h3>
+                            {task.priority && (
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                                {task.priority}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mb-1">{task.poNumber}</p>
+                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <Clock className="h-3 w-3" />
+                            {task.scheduledTime} - {task.estimatedTime}
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600 mb-1">{task.poNumber}</p>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <Clock className="h-3 w-3" />
-                          {task.scheduledTime} - {task.estimatedTime}
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
+                          {task.status?.replace('_', ' ') || 'pending'}
+                        </span>
+                      </div>
+
+                      {task.supplier?.address && (
+                        <div className="flex items-center gap-2 mb-3">
+                          <MapPin className="h-4 w-4 text-gray-400" />
+                          <p className="text-sm text-gray-600">{task.supplier.address}</p>
                         </div>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-3">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <p className="text-sm text-gray-600">{task.supplier.address}</p>
-                    </div>
-
-                    {task.notes && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-3">
-                        <p className="text-sm text-yellow-800">{task.notes}</p>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      {task.status === 'pending' && (
-                        <button
-                          onClick={() => handleTaskAction(task.id, 'start')}
-                          className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                        >
-                          <Play className="h-3 w-3" />
-                          Start Trip
-                        </button>
-                      )}
-                      
-                      {task.status === 'in_transit' && (
-                        <button
-                          onClick={() => handleTaskAction(task.id, 'complete')}
-                          className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                        >
-                          <CheckCircle className="h-3 w-3" />
-                          Complete
-                        </button>
                       )}
 
-                      <button
-                        onClick={() => handleTaskAction(task.id, 'view')}
-                        className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                      >
-                        <FileText className="h-3 w-3" />
-                        Details
-                      </button>
+                      {task.notes && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-3">
+                          <p className="text-sm text-yellow-800">{task.notes}</p>
+                        </div>
+                      )}
 
-                      <a
-                        href={`tel:${task.supplier.contact}`}
-                        className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                      >
-                        <Phone className="h-3 w-3" />
-                        Call
-                      </a>
+                      <div className="flex items-center gap-2">
+                        {task.status === 'pending' && (
+                          <button
+                            onClick={() => handleTaskAction(task.id, 'start')}
+                            className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            <Play className="h-3 w-3" />
+                            Start Trip
+                          </button>
+                        )}
+                        
+                        {task.status === 'in_transit' && (
+                          <button
+                            onClick={() => handleTaskAction(task.id, 'complete')}
+                            className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            Complete
+                          </button>
+                        )}
 
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(task.supplier.address)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                      >
-                        <Navigation className="h-3 w-3" />
-                        Navigate
-                      </a>
+                        <button
+                          onClick={() => handleTaskAction(task.id, 'view')}
+                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                        >
+                          <FileText className="h-3 w-3" />
+                          Details
+                        </button>
+
+                        {task.supplier?.contact && (
+                          <a
+                            href={`tel:${task.supplier.contact}`}
+                            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                          >
+                            <Phone className="h-3 w-3" />
+                            Call
+                          </a>
+                        )}
+
+                        {task.supplier?.address && (
+                          <a
+                            href={`https://maps.google.com/?q=${encodeURIComponent(task.supplier.address)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                          >
+                            <Navigation className="h-3 w-3" />
+                            Navigate
+                          </a>
+                        )}
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No assignments today</h3>
+                    <p className="text-gray-500">Check back later for new logistics tasks.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -417,24 +385,32 @@ const LogisticsDashboard = ({ user }) => {
           {activeTab === 'history' && (
             <div className="p-4">
               <div className="space-y-3">
-                {data.recentHistory.map((day) => (
-                  <div key={day.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{formatDate(day.date)}</h3>
-                        <p className="text-sm text-gray-500">{day.tasks} tasks completed</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">{day.distance}km</p>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          day.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {day.status}
-                        </span>
+                {data.recentHistory.length > 0 ? (
+                  data.recentHistory.map((day) => (
+                    <div key={day.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{formatDate(day.date)}</h3>
+                          <p className="text-sm text-gray-500">{day.tasks} tasks completed</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-gray-900">{day.distance}km</p>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            day.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {day.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No history available</h3>
+                    <p className="text-gray-500">Complete some tasks to see your history here.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -485,21 +461,23 @@ const LogisticsDashboard = ({ user }) => {
             
             <div className="p-4 space-y-4">
               <div>
-                <h3 className="font-medium text-gray-900 mb-2">{selectedTask.supplier.name}</h3>
+                <h3 className="font-medium text-gray-900 mb-2">{selectedTask.supplier?.name || 'Unknown Supplier'}</h3>
                 <p className="text-sm text-gray-600">{selectedTask.poNumber}</p>
               </div>
               
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Items to Collect</h4>
-                <div className="space-y-2">
-                  {selectedTask.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-900">{item.name}</span>
-                      <span className="text-sm text-gray-600">Qty: {item.expectedQty}</span>
-                    </div>
-                  ))}
+              {selectedTask.items && selectedTask.items.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Items to Collect</h4>
+                  <div className="space-y-2">
+                    {selectedTask.items.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <span className="text-sm text-gray-900">{item.name}</span>
+                        <span className="text-sm text-gray-600">Qty: {item.expectedQty}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex gap-2">
                 <button
@@ -529,10 +507,8 @@ const LogisticsDashboard = ({ user }) => {
             </div>
           </div>
         </div>
-        
       )}
     </div>
-    
   );
 };
 
