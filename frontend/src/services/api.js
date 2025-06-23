@@ -34,16 +34,16 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const RefreshTokenn = localStorage.getItem('RefreshTokenn');
-        if (RefreshTokenn) {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
           const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: RefreshTokenn,
+            refresh: refreshToken,
           });
 
-          const newaccess_token = response.data.access;
-          localStorage.setItem('access_token', newaccess_token);
-          api.defaults.headers.common['Authorization'] = `Bearer ${newaccess_token}`;
-          originalRequest.headers.Authorization = `Bearer ${newaccess_token}`;
+          const newAccessToken = response.data.access;
+          localStorage.setItem('access_token', newAccessToken);
+          api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
           
           return api(originalRequest);
@@ -51,7 +51,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect to login
         localStorage.removeItem('access_token');
-        localStorage.removeItem('RefreshTokenn');
+        localStorage.removeItem('refresh_token');
         delete api.defaults.headers.common['Authorization'];
         window.location.href = '/login';
         return Promise.reject(refreshError);
@@ -116,13 +116,13 @@ export const authAPI = {
     return api.get('/auth/roles/');
   },
 
-  logout: (RefreshTokenn) => {
-    return api.post('/auth/logout/', { RefreshToken: RefreshTokenn });
+  logout: (refreshToken) => {
+    return api.post('/auth/logout/', { refresh: refreshToken });
   },
 
-  RefreshTokenn: (RefreshTokenn) => {
+  refreshToken: (refreshToken) => {
     return axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-      refresh: RefreshTokenn,
+      refresh: refreshToken,
     });
   },
 };
@@ -130,7 +130,7 @@ export const authAPI = {
 // Dashboard API endpoints
 export const dashboardAPI = {
   getDashboardData: () => {
-    return api.get('/dashboard/');
+    return api.get('/dashboard/overview/'); // This should be the only function
   },
 
   getStats: () => {
@@ -140,6 +140,45 @@ export const dashboardAPI = {
   getRecentActivity: () => {
     return api.get('/dashboard/recent-activity/');
   },
+
+  // Added method for inventory clerk dashboard
+  getInventoryClerkData: () => {
+    return api.get('/dashboard/inventory-clerk/');
+  },
+
+  // Alternative: Fetch all data needed for inventory clerk dashboard
+  getInventoryDashboardData: async () => {
+    // If you don't have a specific inventory clerk endpoint, 
+    // you can combine multiple API calls
+    try {
+      const [dashboardData, stats, recentActivity] = await Promise.all([
+        api.get('/dashboard/'),
+        api.get('/dashboard/stats/'),
+        api.get('/dashboard/recent-activity/')
+      ]);
+
+      // Combine the data as needed for your dashboard
+      return {
+        data: {
+          metrics: {
+            totalItems: stats.data.totalItems || 0,
+            lowStockAlerts: stats.data.lowStockAlerts || 0,
+            pendingRequests: stats.data.pendingRequests || 0,
+            recentTransactions: stats.data.recentTransactions || 0,
+            availableItems: stats.data.availableItems || 0,
+            reservedItems: stats.data.reservedItems || 0
+          },
+          lowStockItems: dashboardData.data.lowStockItems || [],
+          recentActivity: recentActivity.data.activities || [],
+          pendingTasks: dashboardData.data.pendingTasks || [],
+          quickStats: stats.data.quickStats || [],
+          recentRequests: dashboardData.data.recentRequests || []
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 };
 
 // Helper functions for authentication
@@ -152,7 +191,7 @@ export const loginUser = async (credentials) => {
 
     if (access && refresh) {
       localStorage.setItem('access_token', access);
-      localStorage.setItem('RefreshTokenn', refresh);
+      localStorage.setItem('refresh_token', refresh);
       api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
     }
 
@@ -179,17 +218,16 @@ export const registerUser = async (userData) => {
 
 export const logoutUser = async () => {
   try {
-    const RefreshTokenn = localStorage.getItem('RefreshTokenn');
-    if (RefreshTokenn) {
-      await authAPI.logout({ refresh: RefreshTokenn });
-
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      await authAPI.logout(refreshToken);
     }
   } catch (error) {
     console.error('Logout API call failed:', error);
   } finally {
     // Clear everything regardless of API call success
     localStorage.removeItem('access_token');
-    localStorage.removeItem('RefreshTokenn');
+    localStorage.removeItem('refresh_token');
     delete api.defaults.headers.common['Authorization'];
   }
 };
@@ -203,8 +241,8 @@ export const getStoredToken = () => {
   return localStorage.getItem('access_token');
 };
 
-export const getStoredRefreshTokenn = () => {
-  return localStorage.getItem('RefreshTokenn');
+export const getStoredRefreshToken = () => {
+  return localStorage.getItem('refresh_token');
 };
 
 // Set token in headers if it exists

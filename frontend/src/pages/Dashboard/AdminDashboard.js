@@ -1,5 +1,5 @@
 // src/components/Dashboard/AdminDashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users,
@@ -19,90 +19,63 @@ import {
   Zap,
   Download
 } from 'lucide-react';
-import { authAPI, dashboardAPI } from '../../services/api';
-import toast from 'react-hot-toast';
+// Removed: import { dashboardAPI } from '../../services/api';
+// Removed: import toast from 'react-hot-toast';
 
 const AdminDashboard = ({ user }) => {
-  const [data, setData] = useState({
+  // Initialize with static/mock data instead of empty state
+  const [data] = useState({
     metrics: {
       totalUsers: 0,
       totalOrganizations: 0,
       enabledModules: 0,
-      inventoryActivity: 0,
+      systemHealth: 95,
       lowStockAlerts: 0,
       pendingRequests: 0,
-      systemHealth: 95
+      inventoryActivity: 0
     },
     recentActivity: [],
     systemAlerts: [],
-    userStats: [],
+    userStats: {},
     moduleUsage: [],
     branchStats: []
   });
-  const [loading, setLoading] = useState(true);
+  
+  // Removed: const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAdminData = async () => {
-    try {
-      setLoading(true);
-      
-      const [dashboardResponse, usersResponse, permissionsResponse] = await Promise.all([
-        dashboardAPI.getDashboardData(),
-        authAPI.getUsersList({ limit: 10 }),
-        authAPI.getPermissions()
-      ]);
+  // REMOVED: fetchAdminData function that made API calls
+  // const fetchAdminData = useCallback(async () => {
+  //   try {
+  //     setLoading(true);
+  //     const response = await dashboardAPI.getDashboardData();
+  //     // ... API call logic removed
+  //   } catch (error) {
+  //     console.error('Error fetching admin data:', error);
+  //     toast.error('Failed to load admin data');
+  //   } finally {
+  //     setLoading(false);
+  //     setRefreshing(false);
+  //   }
+  // }, [refreshing]);
 
-      const dashboardData = dashboardResponse.data || {};
-      const usersData = usersResponse.data || {};
-      const permissions = permissionsResponse.data || {};
-
-      setData({
-        metrics: {
-          totalUsers: usersData.count || dashboardData.totalUsers || 0,
-          totalOrganizations: dashboardData.totalOrganizations || 0,
-          enabledModules: dashboardData.enabledModules || 0,
-          inventoryActivity: dashboardData.inventoryActivity || 0,
-          lowStockAlerts: dashboardData.lowStockAlerts || 0,
-          pendingRequests: dashboardData.pendingRequests || 0,
-          systemHealth: dashboardData.systemHealth || 0,
-          permissions: permissions
-        },
-        recentActivity: dashboardData.recentActivity || [],
-        systemAlerts: dashboardData.systemAlerts || [],
-        userStats: usersData.results || dashboardData.userStats || [],
-        moduleUsage: dashboardData.moduleUsage || [],
-        branchStats: dashboardData.branchStats || []
-      });
-
-      toast.success('Admin dashboard refreshed');
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Failed to refresh admin data');
-      
-      // Set empty data on error to avoid undefined errors
-      setData(prevData => ({
-        ...prevData,
-        recentActivity: [],
-        systemAlerts: [],
-        moduleUsage: [],
-        branchStats: []
-      }));
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAdminData();
-  }, []);
+  // REMOVED: useEffect hook that triggered API calls
+  // useEffect(() => {
+  //   fetchAdminData();
+  // }, [fetchAdminData]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchAdminData();
+    // Removed: fetchAdminData();
+    // Instead, just reset refreshing state after a delay to simulate refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
   const formatTime = (timestamp) => {
+    if (!timestamp) return 'Unknown';
+    
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now - date;
@@ -122,6 +95,8 @@ const AdminDashboard = ({ user }) => {
       case 'system': return <Database className="h-4 w-4" />;
       case 'security': return <Shield className="h-4 w-4" />;
       case 'module': return <Zap className="h-4 w-4" />;
+      case 'success': return <CheckCircle className="h-4 w-4" />;
+      case 'error': return <XCircle className="h-4 w-4" />;
       default: return <Activity className="h-4 w-4" />;
     }
   };
@@ -132,6 +107,8 @@ const AdminDashboard = ({ user }) => {
       case 'system': return 'bg-green-100 text-green-600';
       case 'security': return 'bg-red-100 text-red-600';
       case 'module': return 'bg-purple-100 text-purple-600';
+      case 'success': return 'bg-green-100 text-green-600';
+      case 'error': return 'bg-red-100 text-red-600';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
@@ -141,20 +118,46 @@ const AdminDashboard = ({ user }) => {
       case 'warning': return 'bg-yellow-50 border-yellow-200 text-yellow-800';
       case 'error': return 'bg-red-50 border-red-200 text-red-800';
       case 'info': return 'bg-blue-50 border-blue-200 text-blue-800';
+      case 'success': return 'bg-green-50 border-green-200 text-green-800';
       default: return 'bg-gray-50 border-gray-200 text-gray-800';
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
-          <p className="text-gray-600">Loading admin dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  const getAlertIcon = (type) => {
+    switch (type) {
+      case 'warning': return <AlertTriangle className="h-5 w-5" />;
+      case 'error': return <XCircle className="h-5 w-5" />;
+      case 'success': return <CheckCircle className="h-5 w-5" />;
+      case 'info': return <Bell className="h-5 w-5" />;
+      default: return <Bell className="h-5 w-5" />;
+    }
+  };
+
+  const calculateMetricChange = (current, previous) => {
+    if (!previous || previous === 0) return '+0%';
+    const change = ((current - previous) / previous * 100).toFixed(1);
+    return change >= 0 ? `+${change}%` : `${change}%`;
+  };
+
+  const getSystemHealthStatus = (health) => {
+    if (health >= 95) return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', status: 'Excellent' };
+    if (health >= 80) return { icon: AlertTriangle, color: 'text-yellow-600', bgColor: 'bg-yellow-50', status: 'Good' };
+    return { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-50', status: 'Needs Attention' };
+  };
+
+  // Removed loading state check since we're not loading from API
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+  //       <div className="flex flex-col items-center gap-4">
+  //         <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
+  //         <p className="text-gray-600">Loading admin dashboard...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  const healthStatus = getSystemHealthStatus(data.metrics.systemHealth || 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -174,6 +177,13 @@ const AdminDashboard = ({ user }) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* System Health Status Indicator */}
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${healthStatus.bgColor}`}>
+                <healthStatus.icon className={`h-4 w-4 ${healthStatus.color}`} />
+                <span className={`text-sm font-medium ${healthStatus.color}`}>
+                  System {healthStatus.status}
+                </span>
+              </div>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -192,38 +202,38 @@ const AdminDashboard = ({ user }) => {
             {
               icon: Users,
               label: 'Total Users',
-              value: data.metrics.totalUsers,
+              value: data.metrics.totalUsers || 0,
               color: 'text-blue-600',
               bgColor: 'bg-blue-50',
-              change: '+12%',
-              changeType: 'increase'
+              change: calculateMetricChange(data.metrics.totalUsers, data.metrics.previousUsers),
+              changeType: (data.metrics.totalUsers || 0) >= (data.metrics.previousUsers || 0) ? 'increase' : 'decrease'
             },
             {
               icon: Building,
               label: 'Organizations',
-              value: data.metrics.totalOrganizations,
+              value: data.metrics.totalOrganizations || 0,
               color: 'text-green-600',
               bgColor: 'bg-green-50',
-              change: '+2',
-              changeType: 'increase'
+              change: calculateMetricChange(data.metrics.totalOrganizations, data.metrics.previousOrganizations),
+              changeType: (data.metrics.totalOrganizations || 0) >= (data.metrics.previousOrganizations || 0) ? 'increase' : 'decrease'
             },
             {
               icon: Zap,
               label: 'Active Modules',
-              value: data.metrics.enabledModules,
+              value: data.metrics.enabledModules || 0,
               color: 'text-purple-600',
               bgColor: 'bg-purple-50',
-              change: '+3',
-              changeType: 'increase'
+              change: calculateMetricChange(data.metrics.enabledModules, data.metrics.previousModules),
+              changeType: (data.metrics.enabledModules || 0) >= (data.metrics.previousModules || 0) ? 'increase' : 'decrease'
             },
             {
-              icon: AlertTriangle,
+              icon: healthStatus.icon,
               label: 'System Health',
-              value: `${data.metrics.systemHealth}%`,
-              color: 'text-green-600',
-              bgColor: 'bg-green-50',
-              change: '+2%',
-              changeType: 'increase'
+              value: `${data.metrics.systemHealth || 0}%`,
+              color: healthStatus.color,
+              bgColor: healthStatus.bgColor,
+              change: calculateMetricChange(data.metrics.systemHealth, data.metrics.previousSystemHealth),
+              changeType: (data.metrics.systemHealth || 0) >= (data.metrics.previousSystemHealth || 0) ? 'increase' : 'decrease'
             },
           ].map((metric, index) => (
             <div key={index} className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-colors">
@@ -231,8 +241,9 @@ const AdminDashboard = ({ user }) => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-sm font-medium text-gray-600">{metric.label}</p>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${metric.changeType === 'increase' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      metric.changeType === 'increase' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
                       {metric.change}
                     </span>
                   </div>
@@ -255,11 +266,14 @@ const AdminDashboard = ({ user }) => {
                 <div key={alert.id} className={`p-4 rounded-lg border ${getAlertColor(alert.type)}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Bell className="h-5 w-5" />
+                      {getAlertIcon(alert.type)}
                       <p className="font-medium">{alert.message}</p>
                     </div>
                     <span className="text-sm opacity-75">{formatTime(alert.timestamp)}</span>
                   </div>
+                  {alert.details && (
+                    <p className="text-sm opacity-75 mt-2 ml-8">{alert.details}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -303,13 +317,25 @@ const AdminDashboard = ({ user }) => {
               {data.recentActivity.length > 0 ? (
                 data.recentActivity.map((activity) => (
                   <div key={activity.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
-                      {getActivityIcon(activity.type)}
+                    <div className={`p-2 rounded-lg ${getActivityColor(activity.type || activity.activity_type)}`}>
+                      {getActivityIcon(activity.type || activity.activity_type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{activity.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">{formatTime(activity.timestamp)}</p>
+                      <p className="text-xs text-gray-500 mt-1">{formatTime(activity.timestamp || activity.created_at)}</p>
+                      {activity.user && (
+                        <p className="text-xs text-gray-400 mt-1">by {activity.user}</p>
+                      )}
                     </div>
+                    {activity.status && (
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        activity.status === 'success' ? 'bg-green-100 text-green-700' :
+                        activity.status === 'error' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {activity.status}
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
@@ -334,16 +360,22 @@ const AdminDashboard = ({ user }) => {
                 data.moduleUsage.map((module, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">{module.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{module.users} users</span>
-                        <span className="text-sm font-medium text-gray-900">{module.usage}%</span>
+                        <span className="text-sm font-medium text-gray-900">{module.name || module.module_name}</span>
+                        {module.status === 'active' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        {module.status === 'inactive' && <XCircle className="h-4 w-4 text-red-500" />}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">{module.users || module.user_count} users</span>
+                        <span className="text-sm font-medium text-gray-900">{module.usage || module.usage_percentage}%</span>
                       </div>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${module.usage}%` }}
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          module.status === 'active' ? 'bg-blue-600' : 'bg-gray-400'
+                        }`}
+                        style={{ width: `${module.usage || module.usage_percentage || 0}%` }}
                       />
                     </div>
                   </div>
@@ -368,34 +400,52 @@ const AdminDashboard = ({ user }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {data.branchStats.length > 0 ? (
-              data.branchStats.map((branch) => (
-                <div key={branch.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-gray-100 rounded-lg">
-                      <Building className="h-4 w-4 text-gray-600" />
+              data.branchStats.map((branch) => {
+                const branchHealth = branch.health || branch.health_score || 0;
+                return (
+                  <div key={branch.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <Building className="h-4 w-4 text-gray-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">{branch.name || branch.branch_name}</h3>
+                        <div className="flex items-center gap-1 mt-1">
+                          {branchHealth >= 95 ? (
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                          ) : branchHealth >= 80 ? (
+                            <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-500" />
+                          )}
+                          <span className="text-xs text-gray-500">
+                            {branchHealth >= 95 ? 'Healthy' : branchHealth >= 80 ? 'Warning' : 'Critical'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="font-medium text-gray-900">{branch.name}</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Users:</span>
-                      <span className="font-medium">{branch.users}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Items:</span>
-                      <span className="font-medium">{branch.items?.toLocaleString() || 0}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Health:</span>
-                      <span className={`font-medium ${branch.health >= 95 ? 'text-green-600' :
-                        branch.health >= 90 ? 'text-yellow-600' : 'text-red-600'
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Users:</span>
+                        <span className="font-medium">{branch.users || branch.user_count || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Items:</span>
+                        <span className="font-medium">{(branch.items || branch.item_count || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Health:</span>
+                        <span className={`font-medium ${
+                          branchHealth >= 95 ? 'text-green-600' :
+                          branchHealth >= 90 ? 'text-yellow-600' : 'text-red-600'
                         }`}>
-                        {branch.health}%
-                      </span>
+                          {branchHealth}%
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="col-span-full text-center py-8">
                 <Building className="h-8 w-8 text-gray-400 mx-auto mb-2" />

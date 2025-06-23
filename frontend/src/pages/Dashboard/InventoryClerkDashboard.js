@@ -56,143 +56,33 @@ const InventoryClerkDashboard = ({ user }) => {
 
   const fetchInventoryData = async () => {
     try {
-      setLoading(true);
+      if (!refreshing) setLoading(true);
+
+      // Use only the reliable dashboard endpoint
+      const response = await dashboardAPI.getDashboardData();
       
-      // Mock data for demonstration - replace with actual API calls
+      // Set the data from the API response, with fallbacks
+      const responseData = response.data;
       setData({
         metrics: {
-          totalItems: 1247,
-          lowStockAlerts: 23,
-          pendingRequests: 8,
-          recentTransactions: 156,
-          availableItems: 1156,
-          reservedItems: 91
+          totalItems: responseData.metrics?.totalItems || 0,
+          lowStockAlerts: responseData.metrics?.lowStockAlerts || 0,
+          pendingRequests: responseData.metrics?.pendingRequests || 0,
+          recentTransactions: responseData.metrics?.recentTransactions || 0,
+          availableItems: responseData.metrics?.availableItems || 0,
+          reservedItems: responseData.metrics?.reservedItems || 0
         },
-        lowStockItems: [
-          {
-            id: 1,
-            name: 'A4 Paper',
-            sku: 'PAPER-A4-001',
-            currentStock: 5,
-            minStock: 20,
-            maxStock: 100,
-            location: 'A1-B2',
-            lastUpdated: new Date(Date.now() - 1000 * 60 * 30),
-            status: 'critical'
-          },
-          {
-            id: 2,
-            name: 'Ink Cartridge HP 305',
-            sku: 'INK-HP305-BK',
-            currentStock: 2,
-            minStock: 10,
-            maxStock: 50,
-            location: 'B3-C1',
-            lastUpdated: new Date(Date.now() - 1000 * 60 * 45),
-            status: 'critical'
-          },
-          {
-            id: 3,
-            name: 'USB Flash Drive 32GB',
-            sku: 'USB-32GB-001',
-            currentStock: 8,
-            minStock: 15,
-            maxStock: 75,
-            location: 'C2-D3',
-            lastUpdated: new Date(Date.now() - 1000 * 60 * 60),
-            status: 'low'
-          }
-        ],
-        recentActivity: [
-          {
-            id: 1,
-            type: 'stock_in',
-            description: 'Received 50 units of Dell Laptops',
-            user: 'John Smith',
-            timestamp: new Date(Date.now() - 1000 * 60 * 15),
-            quantity: 50,
-            item: 'Dell Laptop XPS 13'
-          },
-          {
-            id: 2,
-            type: 'stock_out',
-            description: 'Issued 25 units of Office Chairs',
-            user: 'Mary Johnson',
-            timestamp: new Date(Date.now() - 1000 * 60 * 45),
-            quantity: 25,
-            item: 'Office Chair Ergonomic'
-          },
-          {
-            id: 3,
-            type: 'adjustment',
-            description: 'Stock adjustment for damaged items',
-            user: 'Current User',
-            timestamp: new Date(Date.now() - 1000 * 60 * 90),
-            quantity: -3,
-            item: 'Wireless Mouse'
-          }
-        ],
-        pendingTasks: [
-          {
-            id: 1,
-            type: 'stock_count',
-            title: 'Quarterly Stock Count - Zone A',
-            dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2),
-            priority: 'high',
-            assignedBy: 'Manager',
-            estimatedTime: '4 hours'
-          },
-          {
-            id: 2,
-            type: 'requisition',
-            title: 'Process Requisition REQ-2024-045',
-            dueDate: new Date(Date.now() + 1000 * 60 * 60 * 6),
-            priority: 'medium',
-            assignedBy: 'Finance Dept',
-            estimatedTime: '30 minutes'
-          },
-          {
-            id: 3,
-            type: 'inspection',
-            title: 'Inspect incoming shipment PO-2024-012',
-            dueDate: new Date(Date.now() + 1000 * 60 * 60 * 2),
-            priority: 'urgent',
-            assignedBy: 'Logistics',
-            estimatedTime: '1 hour'
-          }
-        ],
-        quickStats: [
-          { label: 'Items Processed Today', value: 156, change: '+12%', trend: 'up' },
-          { label: 'Avg. Response Time', value: '15 min', change: '-5%', trend: 'down' },
-          { label: 'Accuracy Rate', value: '99.2%', change: '+0.3%', trend: 'up' },
-          { label: 'Active Locations', value: 45, change: '+2', trend: 'up' }
-        ],
-        recentRequests: [
-          {
-            id: 1,
-            reqNumber: 'REQ-2024-045',
-            department: 'IT Department',
-            items: 3,
-            status: 'pending',
-            submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-            priority: 'medium'
-          },
-          {
-            id: 2,
-            reqNumber: 'REQ-2024-044',
-            department: 'HR Department',
-            items: 5,
-            status: 'approved',
-            submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 4),
-            priority: 'low'
-          }
-        ]
+        lowStockItems: responseData.lowStockItems || [],
+        recentActivity: responseData.recentActivity || [],
+        pendingTasks: responseData.pendingTasks || [],
+        quickStats: responseData.quickStats || [],
+        recentRequests: responseData.recentRequests || []
       });
 
-      toast.success('Dashboard refreshed');
+      toast.success('Dashboard refreshed successfully');
     } catch (error) {
-      console.error('Error fetching inventory data:', error);
-      toast.error('Failed to refresh data');
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to refresh dashboard data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -223,9 +113,9 @@ const InventoryClerkDashboard = ({ user }) => {
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-ZA', { 
-      weekday: 'short', 
-      month: 'short', 
+    return new Date(date).toLocaleDateString('en-ZA', {
+      weekday: 'short',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -298,7 +188,7 @@ const InventoryClerkDashboard = ({ user }) => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">Inventory Dashboard</h1>
-                  <p className="text-gray-600">Welcome back, {user.firstName}!</p>
+                  <p className="text-gray-600">Welcome back, {user?.firstName || 'User'}!</p>
                 </div>
               </div>
             </div>
@@ -440,26 +330,32 @@ const InventoryClerkDashboard = ({ user }) => {
               </Link>
             </div>
             <div className="space-y-4">
-              {data.recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
-                    {getActivityIcon(activity.type)}
+              {data.recentActivity.length > 0 ? (
+                data.recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{activity.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {activity.user} • {formatTime(activity.timestamp)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-sm font-medium ${activity.quantity > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {activity.quantity > 0 ? '+' : ''}{activity.quantity}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {activity.user} • {formatTime(activity.timestamp)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-sm font-medium ${
-                      activity.quantity > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {activity.quantity > 0 ? '+' : ''}{activity.quantity}
-                    </span>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No recent activity</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -507,9 +403,8 @@ const InventoryClerkDashboard = ({ user }) => {
               <div key={index} className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  <span className={`text-sm font-medium ${
-                    stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                  }`}>
+                  <span className={`text-sm font-medium ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                    }`}>
                     {stat.change}
                   </span>
                 </div>

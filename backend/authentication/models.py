@@ -102,3 +102,32 @@ class CustomUser(AbstractUser):
     def can_view_financial_reports(self):
         """Check if user can view financial reports"""
         return self.role in ['developer', 'admin', 'manager', 'finance']
+    
+    # In backend/authentication/models.py, inside CustomUserManager
+
+def create_superuser(self, email, password=None, **extra_fields):
+    """
+    Creates and saves a superuser with the given email and password,
+    and forces the role to 'developer'.
+    """
+    extra_fields.setdefault('is_staff', True)
+    extra_fields.setdefault('is_superuser', True)
+
+    if extra_fields.get('is_staff') is not True:
+        raise ValueError('Superuser must have is_staff=True.')
+    if extra_fields.get('is_superuser') is not True:
+        raise ValueError('Superuser must have is_superuser=True.')
+
+    # Explicitly set the role for the superuser here. This is the key change.
+    extra_fields['role'] = 'developer'
+
+    # We now call the model directly, bypassing the create_user logic
+    # to avoid any conflicts with default role assignment.
+    if not email:
+        raise ValueError('The Email field must be set')
+    email = self.normalize_email(email)
+    user = self.model(email=email, **extra_fields)
+    
+    user.set_password(password)
+    user.save(using=self._db)
+    return user

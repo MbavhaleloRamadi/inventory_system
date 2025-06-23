@@ -3,8 +3,8 @@ services:
   backend:
     build: ./backend
     volumes:
-      - ./backend:/code
-    command: gunicorn raw_code.wsgi:application --bind 0.0.0.0:8000
+      - ./backend:/raw_code
+    command: gunicorn --chdir /raw_code backend.wsgi:application --bind 0.0.0.0:8000
     ports:
       - "8000:8000"
     env_file:

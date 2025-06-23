@@ -5,7 +5,6 @@ app_name = 'dashboard'
 
 urlpatterns = [
     # Main dashboard routes
-    path('', views.index, name='dashboard-index'),
     path('overview/', views.dashboard_overview, name='dashboard-overview'),
     
     # Metric-related endpoints

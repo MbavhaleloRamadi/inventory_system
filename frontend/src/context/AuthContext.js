@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     console.error("Failed to fetch user", error);
     setUser(null);
     localStorage.removeItem('access_token');
-    localStorage.removeItem('RefreshToken');
+    localStorage.removeItem('refresh_token');
   } finally {
     setLoading(false);
   }
@@ -36,7 +36,7 @@ const login = async (credentials) => {
     const { access, refresh, user } = response.data;
 
     localStorage.setItem('access_token', access);
-    localStorage.setItem('RefreshToken', refresh);
+    localStorage.setItem('refresh_token', refresh);
     setUser(user);
     toast.success('Logged in successfully!');
     return user;
@@ -67,18 +67,18 @@ const login = async (credentials) => {
 
   const logout = async () => {
   try {
-    const RefreshTokenn = localStorage.getItem('RefreshToken');
-    if (RefreshTokenn) {
-      await authAPI.logout({ refresh: RefreshTokenn }); // call logout endpoint
+    const refresh_token = localStorage.getItem('refresh_token');
+    if (refresh_token) {
+      await authAPI.logout({ refresh: refresh_token }); // call logout endpoint
     }
 
     setUser(null);
     localStorage.removeItem('access_token');
-    localStorage.removeItem('RefreshToken');
+    localStorage.removeItem('refresh_token');
     toast.success('Logged out successfully');
   } catch (error) {
     console.error('Logout failed:', error);
-    toast.error('TATA');
+    toast.error('Thank You For Using REDCORE360');
   }
 };
 

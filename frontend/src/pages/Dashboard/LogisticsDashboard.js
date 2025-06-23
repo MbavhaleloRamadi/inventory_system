@@ -19,7 +19,7 @@ import {
   Settings,
   RefreshCw,
   QrCode,
-  Route,
+  Map,
   Star,
   Timer,
   Wifi,
@@ -41,41 +41,55 @@ const LogisticsDashboard = ({ user }) => {
     completedToday: 0,
     totalDistance: 0,
     onlineStatus: true,
-    recentHistory: []
+    recentHistory: [],
+    performanceRating: 4.5,
+    activeTime: 0,
+    isPaused: false
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [activeTab, setActiveTab] = useState('today');
+  const [showAlerts, setShowAlerts] = useState(false);
+  const [viewMode, setViewMode] = useState('grid'); // grid or list
 
   const fetchLogisticsData = async () => {
     try {
       setLoading(true);
       
-      const dashboardResponse = await dashboardAPI.getDashboardData();
-      const dashboardData = dashboardResponse.data || {};
+      // Fetch the data from your central dashboard endpoint
+      const response = await dashboardAPI.getDashboardData();
+      const data = response.data;
 
+      // Use the live data from the API to set your component's state
       setData({
-        todayAssignments: dashboardData.todayAssignments || [],
-        currentTrip: dashboardData.currentTrip || null,
-        completedToday: dashboardData.completedToday || 0,
-        totalDistance: dashboardData.totalDistance || 0,
-        onlineStatus: dashboardData.onlineStatus !== undefined ? dashboardData.onlineStatus : true,
-        recentHistory: dashboardData.recentHistory || []
+        todayAssignments: data.today_assignments || [],
+        currentTrip: data.current_trip || null,
+        completedToday: data.completed_today || 0,
+        totalDistance: data.total_distance || 0,
+        onlineStatus: data.online_status !== undefined ? data.online_status : true,
+        recentHistory: data.recent_history || [],
+        performanceRating: data.performance_rating || 4.5,
+        activeTime: data.active_time || 0,
+        isPaused: data.is_paused || false
       });
 
       toast.success('Dashboard refreshed');
     } catch (error) {
       console.error('Error fetching logistics data:', error);
       toast.error('Failed to refresh data');
-      
-      // Set empty data on error to avoid undefined errors
-      setData(prevData => ({
-        ...prevData,
+      // Set empty data on error
+      setData({
         todayAssignments: [],
         currentTrip: null,
-        recentHistory: []
-      }));
+        completedToday: 0,
+        totalDistance: 0,
+        onlineStatus: true,
+        recentHistory: [],
+        performanceRating: 4.5,
+        activeTime: 0,
+        isPaused: false
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -84,16 +98,35 @@ const LogisticsDashboard = ({ user }) => {
 
   useEffect(() => {
     fetchLogisticsData();
-  }, []);
+    
+    // Timer for active time tracking
+    const timer = setInterval(() => {
+      if (!data.isPaused && data.onlineStatus) {
+        setData(prevData => ({
+          ...prevData,
+          activeTime: prevData.activeTime + 1
+        }));
+      }
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, [data.isPaused, data.onlineStatus]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchLogisticsData();
   };
 
+  const handlePauseToggle = () => {
+    setData(prevData => ({
+      ...prevData,
+      isPaused: !prevData.isPaused
+    }));
+    toast.success(data.isPaused ? 'Work resumed' : 'Work paused');
+  };
+
   const handleStartTrip = (taskId) => {
     toast.success('Trip started - GPS tracking enabled');
-    // Update task status and start GPS tracking
     setData(prevData => ({
       ...prevData,
       todayAssignments: prevData.todayAssignments.map(task =>
@@ -107,7 +140,6 @@ const LogisticsDashboard = ({ user }) => {
 
   const handleCompletePickup = (taskId) => {
     toast.success('Pickup completed successfully');
-    // Update task status and sync to server
     setData(prevData => ({
       ...prevData,
       todayAssignments: prevData.todayAssignments.map(task =>
@@ -168,6 +200,50 @@ const LogisticsDashboard = ({ user }) => {
     });
   };
 
+  const formatActiveTime = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  const getAlerts = () => {
+    const alerts = [];
+    
+    // Check for high priority pending tasks
+    const highPriorityPending = data.todayAssignments.filter(
+      task => task.priority === 'high' && task.status === 'pending'
+    );
+    if (highPriorityPending.length > 0) {
+      alerts.push({
+        type: 'warning',
+        message: `${highPriorityPending.length} high priority task(s) pending`,
+        icon: AlertTriangle
+      });
+    }
+
+    // Check for offline status
+    if (!data.onlineStatus) {
+      alerts.push({
+        type: 'error',
+        message: 'You are currently offline',
+        icon: AlertCircle
+      });
+    }
+
+    // Check for paused status
+    if (data.isPaused) {
+      alerts.push({
+        type: 'info',
+        message: 'Work timer is paused',
+        icon: Pause
+      });
+    }
+
+    return alerts;
+  };
+
+  const alerts = getAlerts();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -186,12 +262,29 @@ const LogisticsDashboard = ({ user }) => {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Truck className="h-6 w-6 text-blue-600" />
+              <div className="relative">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Truck className="h-6 w-6 text-blue-600" />
+                </div>
+                {user?.profileImage ? (
+                  <img 
+                    src={user.profileImage} 
+                    alt="Profile" 
+                    className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white"
+                  />
+                ) : (
+                  <UserCircle className="absolute -bottom-1 -right-1 h-5 w-5 text-gray-400" />
+                )}
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Logistics Dashboard</h1>
-                <p className="text-sm text-gray-600">Welcome back, {user?.firstName || 'User'}!</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-600">Welcome back, {user?.firstName || 'User'}!</p>
+                  <div className="flex items-center gap-1">
+                    <Star className="h-3 w-3 text-yellow-500" />
+                    <span className="text-xs text-gray-600">{data.performanceRating}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -201,6 +294,17 @@ const LogisticsDashboard = ({ user }) => {
                 {data.onlineStatus ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
                 {data.onlineStatus ? 'Online' : 'Offline'}
               </div>
+              {alerts.length > 0 && (
+                <button
+                  onClick={() => setShowAlerts(!showAlerts)}
+                  className="relative p-2 text-orange-500 hover:text-orange-700"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                    {alerts.length}
+                  </span>
+                </button>
+              )}
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -211,8 +315,24 @@ const LogisticsDashboard = ({ user }) => {
             </div>
           </div>
 
+          {/* Alerts Panel */}
+          {showAlerts && alerts.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {alerts.map((alert, index) => (
+                <div key={index} className={`flex items-center gap-2 p-3 rounded-lg border ${
+                  alert.type === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
+                  alert.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+                  'bg-blue-50 border-blue-200 text-blue-700'
+                }`}>
+                  <alert.icon className="h-4 w-4" />
+                  <span className="text-sm">{alert.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Today's Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">{data.todayAssignments.length}</div>
               <div className="text-xs text-gray-500">Today's Tasks</div>
@@ -225,6 +345,28 @@ const LogisticsDashboard = ({ user }) => {
               <div className="text-2xl font-bold text-purple-600">{data.totalDistance}km</div>
               <div className="text-xs text-gray-500">Distance</div>
             </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-2xl font-bold text-orange-600">
+                <Timer className="h-5 w-5" />
+                {formatActiveTime(data.activeTime)}
+              </div>
+              <div className="text-xs text-gray-500">Active Time</div>
+            </div>
+          </div>
+
+          {/* Work Timer Controls */}
+          <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={handlePauseToggle}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                data.isPaused 
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+              }`}
+            >
+              {data.isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+              {data.isPaused ? 'Resume Work' : 'Pause Work'}
+            </button>
           </div>
         </div>
 
@@ -235,10 +377,20 @@ const LogisticsDashboard = ({ user }) => {
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Navigation className="h-4 w-4 text-blue-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-blue-900">Current Trip</h3>
                 <p className="text-sm text-blue-700">To {data.currentTrip.supplier}</p>
               </div>
+              <a
+                href={`https://maps.google.com/?q=${encodeURIComponent(data.currentTrip.supplier?.address || '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200"
+              >
+                <Map className="h-3 w-3" />
+                Map
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
             <div className="flex items-center justify-between">
               <div className="text-sm text-blue-700">
@@ -256,7 +408,8 @@ const LogisticsDashboard = ({ user }) => {
           <div className="flex border-b border-gray-200">
             {[
               { id: 'today', label: 'Today', icon: Home },
-              { id: 'history', label: 'History', icon: History }
+              { id: 'history', label: 'History', icon: History },
+              { id: 'profile', label: 'Profile', icon: User }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -276,98 +429,128 @@ const LogisticsDashboard = ({ user }) => {
           {/* Today's Assignments */}
           {activeTab === 'today' && (
             <div className="p-4">
-              <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-gray-900">Today's Assignments</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                    className="p-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className={viewMode === 'grid' ? 'space-y-4' : 'space-y-2'}>
                 {data.todayAssignments.length > 0 ? (
                   data.todayAssignments.map((task) => (
                     <div
                       key={task.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                      className={`border border-gray-200 rounded-lg hover:border-gray-300 transition-colors ${
+                        viewMode === 'grid' ? 'p-4' : 'p-3'
+                      }`}
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      <div className={`flex items-start justify-between ${viewMode === 'grid' ? 'mb-3' : 'mb-2'}`}>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-gray-900">{task.supplier?.name || 'Unknown Supplier'}</h3>
+                            <h3 className={`font-semibold text-gray-900 ${viewMode === 'list' ? 'text-sm' : ''}`}>
+                              {task.supplier?.name || 'Unknown Supplier'}
+                            </h3>
                             {task.priority && (
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
                                 {task.priority}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 mb-1">{task.poNumber}</p>
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <p className={`text-gray-600 mb-1 ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
+                            {task.poNumber}
+                          </p>
+                          <div className={`flex items-center gap-1 text-gray-500 ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
                             <Clock className="h-3 w-3" />
                             {task.scheduledTime} - {task.estimatedTime}
                           </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-                          {task.status?.replace('_', ' ') || 'pending'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
+                            {task.status?.replace('_', ' ') || 'pending'}
+                          </span>
+                          <button
+                            onClick={() => handleTaskAction(task.id, 'view')}
+                            className="p-1 text-gray-400 hover:text-gray-600"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
 
-                      {task.supplier?.address && (
-                        <div className="flex items-center gap-2 mb-3">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          <p className="text-sm text-gray-600">{task.supplier.address}</p>
-                        </div>
+                      {viewMode === 'grid' && (
+                        <>
+                          {task.supplier?.address && (
+                            <div className="flex items-center gap-2 mb-3">
+                              <MapPin className="h-4 w-4 text-gray-400" />
+                              <p className="text-sm text-gray-600">{task.supplier.address}</p>
+                            </div>
+                          )}
+
+                          {task.notes && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-3">
+                              <p className="text-sm text-yellow-800">{task.notes}</p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2">
+                            {task.status === 'pending' && (
+                              <button
+                                onClick={() => handleTaskAction(task.id, 'start')}
+                                className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                              >
+                                <Play className="h-3 w-3" />
+                                Start Trip
+                              </button>
+                            )}
+                            
+                            {task.status === 'in_transit' && (
+                              <button
+                                onClick={() => handleTaskAction(task.id, 'complete')}
+                                className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                Complete
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => handleTaskAction(task.id, 'view')}
+                              className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Details
+                            </button>
+
+                            {task.supplier?.contact && (
+                              <a
+                                href={`tel:${task.supplier.contact}`}
+                                className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                              >
+                                <Phone className="h-3 w-3" />
+                                Call
+                              </a>
+                            )}
+
+                            {task.supplier?.address && (
+                              <a
+                                href={`https://maps.google.com/?q=${encodeURIComponent(task.supplier.address)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                              >
+                                <Navigation className="h-3 w-3" />
+                                Navigate
+                              </a>
+                            )}
+                          </div>
+                        </>
                       )}
-
-                      {task.notes && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-3">
-                          <p className="text-sm text-yellow-800">{task.notes}</p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        {task.status === 'pending' && (
-                          <button
-                            onClick={() => handleTaskAction(task.id, 'start')}
-                            className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                          >
-                            <Play className="h-3 w-3" />
-                            Start Trip
-                          </button>
-                        )}
-                        
-                        {task.status === 'in_transit' && (
-                          <button
-                            onClick={() => handleTaskAction(task.id, 'complete')}
-                            className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                            Complete
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => handleTaskAction(task.id, 'view')}
-                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                        >
-                          <FileText className="h-3 w-3" />
-                          Details
-                        </button>
-
-                        {task.supplier?.contact && (
-                          <a
-                            href={`tel:${task.supplier.contact}`}
-                            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                          >
-                            <Phone className="h-3 w-3" />
-                            Call
-                          </a>
-                        )}
-
-                        {task.supplier?.address && (
-                          <a
-                            href={`https://maps.google.com/?q=${encodeURIComponent(task.supplier.address)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                          >
-                            <Navigation className="h-3 w-3" />
-                            Navigate
-                          </a>
-                        )}
-                      </div>
                     </div>
                   ))
                 ) : (
@@ -387,7 +570,7 @@ const LogisticsDashboard = ({ user }) => {
               <div className="space-y-3">
                 {data.recentHistory.length > 0 ? (
                   data.recentHistory.map((day) => (
-                    <div key={day.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={day.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-medium text-gray-900">{formatDate(day.date)}</h3>
@@ -395,11 +578,14 @@ const LogisticsDashboard = ({ user }) => {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium text-gray-900">{day.distance}km</p>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            day.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {day.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              day.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {day.status}
+                            </span>
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -411,6 +597,57 @@ const LogisticsDashboard = ({ user }) => {
                     <p className="text-gray-500">Complete some tasks to see your history here.</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <div className="p-4">
+              <div className="text-center mb-6">
+                {user?.profileImage ? (
+                  <img 
+                    src={user.profileImage} 
+                    alt="Profile" 
+                    className="h-20 w-20 rounded-full mx-auto mb-4 border-4 border-blue-100"
+                  />
+                ) : (
+                  <div className="h-20 w-20 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <UserCircle className="h-12 w-12 text-gray-400" />
+                  </div>
+                )}
+                <h2 className="text-xl font-bold text-gray-900">{user?.firstName} {user?.lastName}</h2>
+                <p className="text-sm text-gray-600">{user?.email}</p>
+                <div className="flex items-center justify-center gap-1 mt-2">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm font-medium text-gray-700">{data.performanceRating} Rating</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">This Week's Performance</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-blue-600">{data.completedToday * 5}</div>
+                      <div className="text-xs text-gray-500">Tasks Completed</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-600">{(data.totalDistance * 7).toFixed(0)}km</div>
+                      <div className="text-xs text-gray-500">Distance Covered</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Work Hours</h3>
+                  <div className="flex items-center gap-2">
+                    <Timer className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">
+                      Active today: {formatActiveTime(data.activeTime)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -436,78 +673,123 @@ const LogisticsDashboard = ({ user }) => {
               to="/settings"
               className="flex items-center gap-2 p-3 bg-gray-50 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
             >
-              <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4" />
               Settings
             </Link>
           </div>
         </div>
-      </div>
 
-      {/* Task Detail Modal */}
-      {selectedTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Task Details</h2>
-                <button
-                  onClick={() => setSelectedTask(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
+        {/* Task Detail Modal */}
+        {selectedTask && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Task Details</h2>
+                  <button
+                    onClick={() => setSelectedTask(null)}
+                    className="p-2 text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">{selectedTask.supplier?.name || 'Unknown Supplier'}</h3>
-                <p className="text-sm text-gray-600">{selectedTask.poNumber}</p>
-              </div>
-              
-              {selectedTask.items && selectedTask.items.length > 0 && (
+              <div className="p-4 space-y-4">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Items to Collect</h4>
-                  <div className="space-y-2">
-                    {selectedTask.items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <span className="text-sm text-gray-900">{item.name}</span>
-                        <span className="text-sm text-gray-600">Qty: {item.expectedQty}</span>
-                      </div>
-                    ))}
+                  <h3 className="font-medium text-gray-900 mb-2">{selectedTask.supplier?.name}</h3>
+                  <p className="text-sm text-gray-600 mb-1">PO: {selectedTask.poNumber}</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedTask.status)}`}>
+                      {selectedTask.status?.replace('_', ' ') || 'pending'}
+                    </span>
+                    {selectedTask.priority && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedTask.priority)}`}>
+                        {selectedTask.priority}
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
+                
+                {selectedTask.supplier?.address && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Address</p>
+                      <p className="text-sm text-gray-600">{selectedTask.supplier.address}</p>
+                    </div>
+                  </div>
+                )}
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    handleTaskAction(selectedTask.id, selectedTask.status === 'pending' ? 'start' : 'complete');
-                    setSelectedTask(null);
-                  }}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium ${
-                    selectedTask.status === 'pending'
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : selectedTask.status === 'in_transit'
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                  disabled={selectedTask.status === 'completed'}
-                >
-                  {selectedTask.status === 'pending' ? 'Start Trip' : 
-                   selectedTask.status === 'in_transit' ? 'Complete Pickup' : 'Completed'}
-                </button>
-                <button
-                  onClick={() => setSelectedTask(null)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Schedule</p>
+                    <p className="text-sm text-gray-600">{selectedTask.scheduledTime} - {selectedTask.estimatedTime}</p>
+                  </div>
+                </div>
+
+                {selectedTask.notes && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                    <p className="text-sm font-medium text-yellow-800 mb-1">Notes</p>
+                    <p className="text-sm text-yellow-700">{selectedTask.notes}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  {selectedTask.status === 'pending' && (
+                    <button
+                      onClick={() => {
+                        handleTaskAction(selectedTask.id, 'start');
+                        setSelectedTask(null);
+                      }}
+                      className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <Play className="h-3 w-3" />
+                      Start Trip
+                    </button>
+                  )}
+                  
+                  {selectedTask.status === 'in_transit' && (
+                    <button
+                      onClick={() => {
+                        handleTaskAction(selectedTask.id, 'complete');
+                        setSelectedTask(null);
+                      }}
+                      className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                    >
+                      <CheckCircle className="h-3 w-3" />
+                      Complete
+                    </button>
+                  )}
+
+                  {selectedTask.supplier?.contact && (
+                    <a
+                      href={`tel:${selectedTask.supplier.contact}`}
+                      className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                    >
+                      <Phone className="h-3 w-3" />
+                      Call
+                    </a>
+                  )}
+
+                  {selectedTask.supplier?.address && (
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(selectedTask.supplier.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                    >
+                      <Navigation className="h-3 w-3" />
+                      Navigate
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

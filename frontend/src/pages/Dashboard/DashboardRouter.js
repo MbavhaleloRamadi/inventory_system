@@ -4,6 +4,9 @@ import { useAuth } from '../../hooks/useAuth';
 import AdminDashboard from './AdminDashboard';
 import LogisticsDashboard from './LogisticsDashboard';
 import InventoryClerkDashboard from './InventoryClerkDashboard';
+import ManagerDashboard from './ManagerDashboard';
+import ProcurementDashboard from './ProcurementDashboard';
+import FinanceDashboard from './FinanceDashboard';
 import { AlertTriangle } from 'lucide-react';
 
 const DashboardRouter = () => {
@@ -32,21 +35,26 @@ const DashboardRouter = () => {
     );
   }
 
-  // Route based on user role
+  // Route based on user role - ALIGNED WITH BACKEND ROLE_CHOICES
+  // Backend roles: developer, admin, manager, staff, procurement, finance, logistics
   switch (user.role.toLowerCase()) {
+    case 'developer':
     case 'admin':
-    case 'administrator':
       return <AdminDashboard user={user} />;
     
+    case 'manager':
+      return <ManagerDashboard user={user} />;
+    
+    case 'procurement':
+      return <ProcurementDashboard user={user} />;
+    
+    case 'finance':
+      return <FinanceDashboard user={user} />;
+    
     case 'logistics':
-    case 'driver':
-    case 'collector':
       return <LogisticsDashboard user={user} />;
     
     case 'staff':
-    case 'clerk':
-    case 'inventory_clerk':
-    case 'operator':
       return <InventoryClerkDashboard user={user} />;
     
     default:
@@ -58,6 +66,9 @@ const DashboardRouter = () => {
             <p className="text-gray-600">
               Role "{user.role}" is not recognized. Please contact your administrator.
             </p>
+            <div className="mt-4 text-sm text-gray-500">
+              <p>Valid roles: developer, admin, manager, staff, procurement, finance, logistics</p>
+            </div>
           </div>
         </div>
       );

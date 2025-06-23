@@ -71,14 +71,6 @@ function App() {
               } />
               
               {/* Protected Routes */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DashboardRouter />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Layout>
