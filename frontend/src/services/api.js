@@ -335,4 +335,12 @@ export const inventoryAPI = {
   },
 };
 
+export const requisitionsAPI = {
+  getAll: (params) => api.get('/requisitions/', { params }),
+  get: (id) => api.get(`/requisitions/${id}/`),
+  create: (data) => api.post('/requisitions/', data),
+  update: (id, data) => api.put(`/requisitions/${id}/`, data),
+  delete: (id) => api.delete(`/requisitions/${id}/`),
+};
+
 export default api;
