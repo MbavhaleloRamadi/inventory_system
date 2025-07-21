@@ -171,3 +171,8 @@ class ChangePasswordSerializer(serializers.Serializer):
         if attrs['new_password'] != attrs['confirm_password']:
             raise serializers.ValidationError("New passwords do not match.")
         return attrs
+    
+class InventoryItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InventoryItem
+        fields = '__all__'

@@ -131,3 +131,17 @@ def create_superuser(self, email, password=None, **extra_fields):
     user.set_password(password)
     user.save(using=self._db)
     return user
+
+class InventoryItem(models.Model):
+    name = models.CharField(max_length=255)
+    sku = models.CharField(max_length=100, unique=True)
+    category = models.CharField(max_length=100)
+    location = models.CharField(max_length=100)
+    current_stock = models.IntegerField()
+    reorder_level = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    total_value = models.DecimalField(max_digits=10, decimal_places=2)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
