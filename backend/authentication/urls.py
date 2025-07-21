@@ -3,9 +3,6 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
-router = DefaultRouter()
-router.register(r'inventory', views.InventoryItemViewSet)
-
 
 urlpatterns = [
     # Authentication endpoints

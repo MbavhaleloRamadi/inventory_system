@@ -9,6 +9,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
 from django.db import connection
+from inventory.models import InventoryItem
+from requisitions.models import Requisition
 from .models import (
     DashboardWidget, DashboardMetric, ActivityLog, 
     SystemAlert, UserAlertStatus, QuickAction, DashboardLayout
@@ -39,6 +41,10 @@ def dashboard_overview(request):
     """
     user = request.user
     user_role = user.role
+    
+    total_items = InventoryItem.objects.count()
+    low_stock_alerts = InventoryItem.objects.filter(quantity__lte=models.F('reorder_level')).count()
+    pending_requests = Requisition.objects.filter(status='pending').count()
     
     # Get role-specific metrics
     metrics = DashboardMetric.objects.filter(

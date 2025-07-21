@@ -50,6 +50,7 @@ const Inventory = () => {
     'Warehouse A', 'Warehouse B', 'Office', 'Site 1', 'Site 2'
   ]);
 
+
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -64,13 +65,17 @@ const Inventory = () => {
         ordering: `${sortOrder === 'desc' ? '-' : ''}${sortBy}`
       };
 
+
       // Remove undefined values
       Object.keys(params).forEach(key => 
         params[key] === undefined && delete params[key]
       );
 
       const response = await inventoryAPI.getItems(params);
-      setItems(response.data.results || response.data);
+
+      // Always access the .results property and provide an empty array as a fallback.
+      setItems(response.data.results || []); 
+
       setPagination(prev => ({
         ...prev,
         total: response.data.count || response.data.length,

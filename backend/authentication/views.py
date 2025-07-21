@@ -15,14 +15,12 @@ from rest_framework.parsers import MultiPartParser, FormParser
 import csv
 import io
 from decimal import Decimal
-from .models import InventoryItem
 from .serializers import (
     CustomTokenObtainPairSerializer, 
     UserRegistrationSerializer,
     UserProfileSerializer, 
     UserListSerializer,
-    ChangePasswordSerializer,
-    InventoryItemSerializer
+    ChangePasswordSerializer
 )
 
 User = get_user_model()
@@ -307,7 +305,7 @@ def get_role_choices(request):
     return Response([{'value': role[0], 'label': role[1]} for role in roles])
 
 
-class InventoryItemViewSet(viewsets.ModelViewSet):
+
     """
     ViewSet for managing inventory items
     """

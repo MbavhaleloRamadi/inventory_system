@@ -132,7 +132,7 @@ def create_superuser(self, email, password=None, **extra_fields):
     user.save(using=self._db)
     return user
 
-class InventoryItem(models.Model):
+
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=100, unique=True)
     category = models.CharField(max_length=100)
