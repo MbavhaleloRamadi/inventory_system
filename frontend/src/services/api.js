@@ -1,19 +1,20 @@
 // src/services/api.js
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:8000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,26 +35,30 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = localStorage.getItem("refresh_token");
         if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: refreshToken,
-          });
+          const response = await axios.post(
+            `${API_BASE_URL}/auth/token/refresh/`,
+            {
+              refresh: refreshToken,
+            }
+          );
 
           const newAccessToken = response.data.access;
-          localStorage.setItem('access_token', newAccessToken);
-          api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+          localStorage.setItem("access_token", newAccessToken);
+          api.defaults.headers.common[
+            "Authorization"
+          ] = `Bearer ${newAccessToken}`;
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-          
           return api(originalRequest);
         }
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect to login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        delete api.defaults.headers.common['Authorization'];
-        window.location.href = '/login';
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        delete api.defaults.headers.common["Authorization"];
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
@@ -66,38 +71,38 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => {
     // Matches your CustomTokenObtainPairView
-    return api.post('/auth/login/', credentials);
+    return api.post("/auth/login/", credentials);
   },
 
   register: (userData) => {
     // Uses public registration endpoint
-    return api.post('/auth/register/public/', userData);
+    return api.post("/auth/register/public/", userData);
   },
 
   adminRegister: (userData) => {
     // Admin-only registration endpoint
-    return api.post('/auth/register/', userData);
+    return api.post("/auth/register/", userData);
   },
 
   getProfile: () => {
-    return api.get('/auth/profile/');
+    return api.get("/auth/profile/");
   },
 
   updateProfile: (userData) => {
-    return api.put('/auth/profile/update/', userData);
+    return api.put("/auth/profile/update/", userData);
   },
 
   changePassword: (passwordData) => {
-    return api.post('/auth/profile/change-password/', passwordData);
+    return api.post("/auth/profile/change-password/", passwordData);
   },
 
   getPermissions: () => {
-    return api.get('/auth/permissions/');
+    return api.get("/auth/permissions/");
   },
 
   getUsersList: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    return api.get(`/auth/users/${queryString ? `?${queryString}` : ''}`);
+    return api.get(`/auth/users/${queryString ? `?${queryString}` : ""}`);
   },
 
   getUser: (userId) => {
@@ -113,11 +118,11 @@ export const authAPI = {
   },
 
   getRoleChoices: () => {
-    return api.get('/auth/roles/');
+    return api.get("/auth/roles/");
   },
 
   logout: (refreshToken) => {
-    return api.post('/auth/logout/', { refresh: refreshToken });
+    return api.post("/auth/logout/", { refresh: refreshToken });
   },
 
   refreshToken: (refreshToken) => {
@@ -130,31 +135,31 @@ export const authAPI = {
 // Dashboard API endpoints
 export const dashboardAPI = {
   getDashboardData: () => {
-    return api.get('/dashboard/overview/'); // This should be the only function
+    return api.get("/dashboard/overview/"); // This should be the only function
   },
 
   getStats: () => {
-    return api.get('/dashboard/stats/');
+    return api.get("/dashboard/stats/");
   },
 
   getRecentActivity: () => {
-    return api.get('/dashboard/recent-activity/');
+    return api.get("/dashboard/recent-activity/");
   },
 
   // Added method for inventory clerk dashboard
   getInventoryClerkData: () => {
-    return api.get('/dashboard/inventory-clerk/');
+    return api.get("/dashboard/inventory-clerk/");
   },
 
   // Alternative: Fetch all data needed for inventory clerk dashboard
   getInventoryDashboardData: async () => {
-    // If you don't have a specific inventory clerk endpoint, 
+    // If you don't have a specific inventory clerk endpoint,
     // you can combine multiple API calls
     try {
       const [dashboardData, stats, recentActivity] = await Promise.all([
-        api.get('/dashboard/'),
-        api.get('/dashboard/stats/'),
-        api.get('/dashboard/recent-activity/')
+        api.get("/dashboard/"),
+        api.get("/dashboard/stats/"),
+        api.get("/dashboard/recent-activity/"),
       ]);
 
       // Combine the data as needed for your dashboard
@@ -166,19 +171,19 @@ export const dashboardAPI = {
             pendingRequests: stats.data.pendingRequests || 0,
             recentTransactions: stats.data.recentTransactions || 0,
             availableItems: stats.data.availableItems || 0,
-            reservedItems: stats.data.reservedItems || 0
+            reservedItems: stats.data.reservedItems || 0,
           },
           lowStockItems: dashboardData.data.lowStockItems || [],
           recentActivity: recentActivity.data.activities || [],
           pendingTasks: dashboardData.data.pendingTasks || [],
           quickStats: stats.data.quickStats || [],
-          recentRequests: dashboardData.data.recentRequests || []
-        }
+          recentRequests: dashboardData.data.recentRequests || [],
+        },
       };
     } catch (error) {
       throw error;
     }
-  }
+  },
 };
 
 // Helper functions for authentication
@@ -190,16 +195,17 @@ export const loginUser = async (credentials) => {
     const { access, refresh, user } = response.data;
 
     if (access && refresh) {
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+      localStorage.setItem("access_token", access);
+      localStorage.setItem("refresh_token", refresh);
+      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
     }
 
     return { success: true, data: { user, tokens: { access, refresh } } };
   } catch (error) {
     return {
       success: false,
-      error: error.response?.data?.detail || error.response?.data || 'Login failed'
+      error:
+        error.response?.data?.detail || error.response?.data || "Login failed",
     };
   }
 };
@@ -211,51 +217,51 @@ export const registerUser = async (userData) => {
   } catch (error) {
     return {
       success: false,
-      error: error.response?.data || 'Registration failed'
+      error: error.response?.data || "Registration failed",
     };
   }
 };
 
 export const logoutUser = async () => {
   try {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = localStorage.getItem("refresh_token");
     if (refreshToken) {
       await authAPI.logout(refreshToken);
     }
   } catch (error) {
-    console.error('Logout API call failed:', error);
+    console.error("Logout API call failed:", error);
   } finally {
     // Clear everything regardless of API call success
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    delete api.defaults.headers.common['Authorization'];
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    delete api.defaults.headers.common["Authorization"];
   }
 };
 
 export const isAuthenticated = () => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem("access_token");
   return !!token;
 };
 
 export const getStoredToken = () => {
-  return localStorage.getItem('access_token');
+  return localStorage.getItem("access_token");
 };
 
 export const getStoredRefreshToken = () => {
-  return localStorage.getItem('refresh_token');
+  return localStorage.getItem("refresh_token");
 };
 
 // Set token in headers if it exists
 const token = getStoredToken();
 if (token) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 }
 
 /// Inventory API endpoints - Updated to use axios instance
 export const inventoryAPI = {
   // Get all inventory items with optional filters
   getItems: (params = {}) => {
-    return api.get('/inventory/', { params });
+    return api.get("/inventory/", { params });
   },
 
   // Get single inventory item
@@ -265,7 +271,7 @@ export const inventoryAPI = {
 
   // Create new inventory item
   createItem: (itemData) => {
-    return api.post('/inventory/', itemData);
+    return api.post("/inventory/", itemData);
   },
 
   // Update inventory item
@@ -278,6 +284,16 @@ export const inventoryAPI = {
     return api.patch(`/inventory/${id}/`, itemData);
   },
 
+  addStock: (data) => api.post("/inventory/items/add-stock/", data),
+  issueStock: (data) => api.post("/inventory/items/issue-stock/", data),
+
+  createItem: (data) => api.post('/inventory/items/', data),
+  deleteItem: (id) => api.delete(`/inventory/items/${id}/`),
+  getCategories: () => api.get('/inventory/categories/'),
+  getLocations: () => api.get('/inventory/locations/'),
+  getSuppliers: () => api.get('/inventory/suppliers/'),
+  // -----------------------------
+
   // Delete inventory item
   deleteItem: (id) => {
     return api.delete(`/inventory/${id}/`);
@@ -285,7 +301,7 @@ export const inventoryAPI = {
 
   // Bulk delete inventory items
   bulkDelete: (itemIds) => {
-    return api.post('/inventory/bulk-delete/', { ids: itemIds });
+    return api.post("/inventory/bulk-delete/", { ids: itemIds });
   },
 
   // Update stock levels
@@ -299,46 +315,46 @@ export const inventoryAPI = {
   },
 
   // Export inventory data
-  exportItems: (format = 'csv', filters = {}) => {
+  exportItems: (format = "csv", filters = {}) => {
     const params = { ...filters, format };
-    return api.get('/inventory/export/', { 
+    return api.get("/inventory/export/", {
       params,
-      responseType: 'blob' // Important for file downloads
+      responseType: "blob", // Important for file downloads
     });
   },
 
   // Import inventory data
   importItems: (file) => {
     const formData = new FormData();
-    formData.append('file', file);
-    
-    return api.post('/inventory/import/', formData, {
+    formData.append("file", file);
+
+    return api.post("/inventory/import/", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
 
   // Get low stock items
   getLowStockItems: () => {
-    return api.get('/inventory/low-stock/');
+    return api.get("/inventory/low-stock/");
   },
 
   // Get inventory categories
   getCategories: () => {
-    return api.get('/inventory/categories/');
+    return api.get("/inventory/categories/");
   },
 
   // Get inventory locations
   getLocations: () => {
-    return api.get('/inventory/locations/');
+    return api.get("/inventory/locations/");
   },
 };
 
 export const requisitionsAPI = {
-  getAll: (params) => api.get('/requisitions/', { params }),
+  getAll: (params) => api.get("/requisitions/", { params }),
   get: (id) => api.get(`/requisitions/${id}/`),
-  create: (data) => api.post('/requisitions/', data),
+  create: (data) => api.post("/requisitions/", data),
   update: (id, data) => api.put(`/requisitions/${id}/`, data),
   delete: (id) => api.delete(`/requisitions/${id}/`),
 };
