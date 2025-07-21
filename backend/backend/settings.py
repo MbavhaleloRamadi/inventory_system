@@ -58,7 +58,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'raw_code.urls'
+ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
     {
@@ -76,7 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'raw_code.wsgi.application'
+WSGI_APPLICATION = 'backend.wsgi.application'
 
 
 # Database
@@ -152,7 +152,7 @@ REST_FRAMEWORK = {
 # JWT SETTINGS
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Fixed typo: was 'refresh_token_LIFETIME'
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7), 
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': False,

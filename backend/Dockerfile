@@ -1,11 +1,18 @@
-FROM python:3.10
+# ./backend/Dockerfile
 
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
+
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE=raw_code.settings
 
+# Set the working directory to match docker-compose.yml
+WORKDIR /backend
 
-WORKDIR /code
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
+# Copy and install requirements
+COPY requirements.txt /backend/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the project code
+COPY . /backend/

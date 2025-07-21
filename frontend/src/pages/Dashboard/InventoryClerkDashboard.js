@@ -82,7 +82,6 @@ const InventoryClerkDashboard = ({ user }) => {
       toast.success('Dashboard refreshed successfully');
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to refresh dashboard data');
     } finally {
       setLoading(false);
       setRefreshing(false);
