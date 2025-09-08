@@ -70,7 +70,7 @@ const InventoryClerkDashboard = ({ user }) => {
       if (!refreshing) setLoading(true);
 
       // Use the dashboard API
-      const response = await dashboardAPI.getDashboardData();
+      const response = await dashboardAPI.getInventoryDashboardData(); // Correct function
 
       // Set the data from the API response, with fallbacks
       const responseData = response.data;

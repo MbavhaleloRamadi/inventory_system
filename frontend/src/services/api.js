@@ -153,37 +153,41 @@ export const dashboardAPI = {
 
   // Alternative: Fetch all data needed for inventory clerk dashboard
   getInventoryDashboardData: async () => {
-    // If you don't have a specific inventory clerk endpoint,
-    // you can combine multiple API calls
-    try {
-      const [dashboardData, stats, recentActivity] = await Promise.all([
-        api.get("/dashboard/"),
-        api.get("/dashboard/stats/"),
-        api.get("/dashboard/recent-activity/"),
-      ]);
+  try {
+    // Use existing working endpoints instead of non-existent dashboard ones
+    const [itemsResponse, lowStockResponse] = await Promise.all([
+      api.get("/inventory/", { params: { page_size: 1000 } }),
+      api.get("/inventory/").then(res => {
+        // Filter for low stock items from the inventory response
+        const items = res.data.results || res.data || [];
+        return { data: items.filter(item => item.current_stock <= item.reorder_level) };
+      }).catch(() => ({ data: [] }))
+    ]);
 
-      // Combine the data as needed for your dashboard
-      return {
-        data: {
-          metrics: {
-            totalItems: stats.data.totalItems || 0,
-            lowStockAlerts: stats.data.lowStockAlerts || 0,
-            pendingRequests: stats.data.pendingRequests || 0,
-            recentTransactions: stats.data.recentTransactions || 0,
-            availableItems: stats.data.availableItems || 0,
-            reservedItems: stats.data.reservedItems || 0,
-          },
-          lowStockItems: dashboardData.data.lowStockItems || [],
-          recentActivity: recentActivity.data.activities || [],
-          pendingTasks: dashboardData.data.pendingTasks || [],
-          quickStats: stats.data.quickStats || [],
-          recentRequests: dashboardData.data.recentRequests || [],
+    const items = itemsResponse.data.results || itemsResponse.data || [];
+    const lowStockItems = lowStockResponse.data || [];
+
+    return {
+      data: {
+        metrics: {
+          totalItems: items.length,
+          lowStockAlerts: lowStockItems.length,
+          pendingRequests: 0, // You'll need to implement this
+          recentTransactions: 0, // You'll need to implement this
+          availableItems: items.filter(item => item.current_stock > 0).length,
+          reservedItems: 0, // You'll need to implement this
         },
-      };
-    } catch (error) {
-      throw error;
-    }
-  },
+        lowStockItems: lowStockItems.slice(0, 5),
+        recentActivity: [], // You'll need to implement this
+        pendingTasks: [], // You'll need to implement this
+        quickStats: [],
+        recentRequests: [], // You'll need to implement this
+      },
+    };
+  } catch (error) {
+    throw error;
+  }
+},
 };
 
 // Helper functions for authentication

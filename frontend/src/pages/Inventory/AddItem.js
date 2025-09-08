@@ -64,7 +64,7 @@ const AddItem = () => {
       };
       await inventoryAPI.createItem(dataToSubmit);
       toast.success("Item added successfully!");
-      navigate("/inventory");
+      navigate("/inventory?refresh=" + Date.now());
     } catch (error) {
       console.error("Failed to add item:", error.response?.data);
       toast.error(
