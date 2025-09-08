@@ -1,18 +1,24 @@
 # ./backend/Dockerfile
 
-# Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
-# Set environment variables
+# Environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH=/backend  
 
-# Set the working directory to match docker-compose.yml
+# Working directory (where manage.py lives)
 WORKDIR /backend
 
-# Copy and install requirements
+# Install dependencies
 COPY requirements.txt /backend/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the project code
+# Copy project files
 COPY . /backend/
+
+# Expose port
+EXPOSE 8000
+
+# Run Gunicorn
+CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]

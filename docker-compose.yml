@@ -23,7 +23,7 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_DB: rawcodedb
+      POSTGRES_DB: rawcode
       POSTGRES_USER: rawuser
       POSTGRES_PASSWORD: rawpass
     volumes:

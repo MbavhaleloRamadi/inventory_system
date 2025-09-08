@@ -89,7 +89,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rawcodedb',
+        'NAME': 'rawcode',
         'USER': 'rawuser',
         'PASSWORD': 'rawpass',
         'HOST': 'db',  # This matches the service name in docker-compose.yml
